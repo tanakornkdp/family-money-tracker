@@ -13,6 +13,7 @@ export const translations = {
       budget: "Budget",
       categories: "Categories",
       creditCards: "Cards",
+      recurring: "Recurring Bills",
     },
     dashboard: {
       title: "Dashboard",
@@ -95,6 +96,8 @@ export const translations = {
       uploadButton: "Upload & Scan",
       processing: "Processing...",
       selectImage: "Click to select a receipt image",
+      delete: "Delete",
+      deleteConfirm: "Are you sure you want to delete this receipt?",
     },
     assistant: {
       title: "AI Assistant",
@@ -331,6 +334,7 @@ export const translations = {
       budget: "งบประมาณ",
       categories: "หมวดหมู่",
       creditCards: "บัตรเครดิต",
+      recurring: "รายการประจำ",
     },
     dashboard: {
       title: "แดชบอร์ด",
@@ -413,6 +417,8 @@ export const translations = {
       uploadButton: "อัปโหลดและสแกน",
       processing: "กำลังประมวลผล...",
       selectImage: "คลิกเพื่อเลือกรูปใบเสร็จ",
+      delete: "ลบ",
+      deleteConfirm: "คุณแน่ใจหรือไม่ว่าต้องการลบใบเสร็จนี้?",
     },
     assistant: {
     title: "ผู้ช่วย AI",

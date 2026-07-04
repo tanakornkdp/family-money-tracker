@@ -18,7 +18,11 @@ export async function POST(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const { kpis, categoryBreakdown, topCategories, period } = body;
+    const { kpis, categoryBreakdown, topCategories, period, upcomingRecurring = [] } = body;
+
+    const recurringText = upcomingRecurring.length > 0
+      ? upcomingRecurring.map((r: { name: string; amount: number; date: string }) => `- ${r.name}: ${r.amount.toLocaleString()} บาท (ครบกำหนดจ่ายวันที่ ${r.date})`).join("\n")
+      : "ไม่มีรายการประจำที่รอชำระในระยะเวลาอันใกล้";
 
     const prompt = `คุณเป็นผู้เชี่ยวชาญด้านการเงินส่วนตัว วิเคราะห์ข้อมูลการเงินต่อไปนี้และให้คำแนะนำเป็นภาษาไทย:
 
@@ -31,12 +35,17 @@ export async function POST(request: NextRequest) {
 หมวดหมู่ค่าใช้จ่ายสูงสุด 5 อันดับ:
 ${topCategories.map((c: { category: string; amount: number; percentage: number }, i: number) => `${i + 1}. ${c.category}: ${c.amount.toLocaleString()} บาท (${c.percentage.toFixed(1)}%)`).join("\n")}
 
+รายการประจำและบริการรายเดือน (Recurring Subscriptions) ที่กำลังจะถึงกำหนดหักบัญชี:
+${recurringText}
+
+กรุณาให้ความสำคัญกับการเสนอแนะแผนการประหยัดออมเงิน หรือการยกเลิกบริการรายเดือนที่ไม่จำเป็น หรือการเตรียมความพร้อมรับมือรายจ่ายประจำเหล่านี้
+
 กรุณาตอบในรูปแบบ JSON ดังนี้:
 {
   "summary": "สรุปภาพรวมการเงิน 1-2 ประโยค",
   "insights": ["insight 1", "insight 2", "insight 3"],
-  "warnings": ["คำเตือน ถ้ามี"],
-  "tips": ["เคล็ดลับออม/ประหยัด 1", "เคล็ดลับ 2", "เคล็ดลับ 3"],
+  "warnings": ["คำเตือน หรือข้อควรระวังเรื่องรายจ่ายที่จะถึงกำหนดจ่ายเร็วๆ นี้"],
+  "tips": ["เคล็ดลับการจัดการเงินเพื่อเตรียมจ่ายรายการประจำ หรือหนี้สิน", "เคล็ดลับประหยัดเพิ่มเติม 1", "เคล็ดลับเพิ่มเติม 2"],
   "score": 75
 }
 

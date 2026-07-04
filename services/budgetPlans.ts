@@ -73,10 +73,13 @@ function getDayIndex(startDate: string, targetDate: string): number {
 /**
  * Calculates daily budget status for every day in the plan range,
  * using cumulative carry-over logic: unused budget rolls into future days.
+ * To keep future days realistic, they do not accumulate future allowances
+ * until those days are reached.
  */
 export function calculateDailyBudgetStatuses(
   plan: BudgetPlan,
-  transactions: Transaction[]
+  transactions: Transaction[],
+  upcomingRecurring: { date: string; amount: number }[] = []
 ): Map<string, DailyBudgetStatus> {
   const totalDays = getDaysBetween(plan.start_date, plan.end_date);
   const dailyAllowance = plan.total_amount / totalDays;
@@ -88,8 +91,20 @@ export function calculateDailyBudgetStatuses(
     expensesByDate.set(t.date, (expensesByDate.get(t.date) ?? 0) + Number(t.amount));
   }
 
+  const projectedByDate = new Map<string, number>();
+  for (const rec of upcomingRecurring) {
+    if (rec.date < plan.start_date || rec.date > plan.end_date) continue;
+    projectedByDate.set(rec.date, (projectedByDate.get(rec.date) ?? 0) + rec.amount);
+  }
+
   const statuses = new Map<string, DailyBudgetStatus>();
   let cumulativeSpent = 0;
+
+  // Get local date string YYYY-MM-DD
+  const today = new Date();
+  const offset = today.getTimezoneOffset();
+  const localToday = new Date(today.getTime() - (offset * 60 * 1000));
+  const todayStr = localToday.toISOString().split("T")[0];
 
   const start = new Date(plan.start_date);
   for (let i = 0; i < totalDays; i++) {
@@ -97,12 +112,22 @@ export function calculateDailyBudgetStatuses(
     current.setDate(start.getDate() + i);
     const dateStr = current.toISOString().split("T")[0];
 
-    const spentAmount = expensesByDate.get(dateStr) ?? 0;
+    const actualSpent = expensesByDate.get(dateStr) ?? 0;
+    const projectedSpent = dateStr > todayStr ? (projectedByDate.get(dateStr) ?? 0) : 0;
+    const spentAmount = actualSpent + projectedSpent;
     cumulativeSpent += spentAmount;
 
     const dayIndex = i + 1;
     const cumulativeBudget = dailyAllowance * dayIndex;
-    const remaining = cumulativeBudget - cumulativeSpent;
+
+    let remaining = 0;
+    if (dateStr > todayStr) {
+      // Future day: only shows its own daily allowance minus any spent amount on that day
+      remaining = dailyAllowance - spentAmount;
+    } else {
+      // Past or Today: shows cumulative budget minus cumulative spent up to this day (unlocked carry-over)
+      remaining = cumulativeBudget - cumulativeSpent;
+    }
 
     statuses.set(dateStr, {
       date: dateStr,

@@ -8,6 +8,7 @@ import {
   deleteBudgetPlan,
 } from "@/services/budgetPlans";
 import { getTransactions } from "@/services/transactions";
+import { getUpcomingOccurrences } from "@/services/recurringBills";
 import { BudgetPlan, Household, Transaction, DailyBudgetStatus } from "@/types";
 import BudgetPlanForm from "./BudgetPlanForm";
 import BudgetCalendarGrid from "./BudgetCalendarGrid";
@@ -64,8 +65,15 @@ export default function BudgetCalendarManager({
           dateTo: matchingPlan.end_date,
           householdId: matchingPlan.household_id || undefined,
         });
+        
+        const occurrences = getUpcomingOccurrences(
+          matchingPlan.start_date,
+          matchingPlan.end_date,
+          matchingPlan.household_id
+        ).map((o) => ({ date: o.date, amount: o.bill.amount }));
+
         setTransactions(txs);
-        setStatuses(calculateDailyBudgetStatuses(matchingPlan, txs));
+        setStatuses(calculateDailyBudgetStatuses(matchingPlan, txs, occurrences));
       } else {
         setStatuses(new Map());
         setTransactions([]);
@@ -210,6 +218,15 @@ function DayDetailClient({
     (tx) => tx.date === status.date && tx.type === "expense"
   );
 
+  const todayStr = new Date().toISOString().split("T")[0];
+  const isFuture = status.date > todayStr;
+  
+  const upcomingBills = isFuture 
+    ? getUpcomingOccurrences(status.date, status.date).filter(o => o.bill.type === "expense")
+    : [];
+
+  const hasItems = dayTransactions.length > 0 || upcomingBills.length > 0;
+
   return (
     <div className="space-y-4">
       <div>
@@ -227,7 +244,7 @@ function DayDetailClient({
           </p>
         </div>
         <div className="rounded-xl bg-slate-50 dark:bg-slate-800/50 p-3">
-          <p className="text-xs text-slate-500 dark:text-slate-400">{t.budget.spent}</p>
+          <p className="text-xs text-slate-500 dark:text-slate-400">{isFuture ? "Spent (Projected)" : t.budget.spent}</p>
           <p className="font-semibold text-slate-900 dark:text-slate-100">
             {formatCurrency(status.spentAmount, currency)}
           </p>
@@ -240,7 +257,7 @@ function DayDetailClient({
         }`}
       >
         <p className="text-xs text-slate-600 dark:text-slate-400">
-          {status.isOverBudget ? t.budget.overBudget : t.budget.remaining}
+          {status.isOverBudget ? (isFuture ? "Over Budget (Projected)" : t.budget.overBudget) : t.budget.remaining}
         </p>
         <p
           className={`text-xl font-bold ${
@@ -255,7 +272,7 @@ function DayDetailClient({
         <p className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">
           {t.transactions.allTransactions}
         </p>
-        {dayTransactions.length === 0 ? (
+        {!hasItems ? (
           <p className="text-sm text-slate-500 dark:text-slate-400">
             {t.budget.noTransactionsThisDay}
           </p>
@@ -266,6 +283,16 @@ function DayDetailClient({
                 <span className="text-slate-700 dark:text-slate-300">{tx.title}</span>
                 <span className="font-medium text-red-600 dark:text-red-400">
                   -{formatCurrency(Number(tx.amount), currency)}
+                </span>
+              </li>
+            ))}
+            {upcomingBills.map((occ, idx) => (
+              <li key={`bill-${idx}`} className="flex justify-between text-sm italic bg-indigo-50/40 dark:bg-indigo-950/20 p-1.5 rounded-lg border border-dashed border-indigo-200 dark:border-indigo-900">
+                <span className="text-indigo-600 dark:text-indigo-400 flex items-center gap-1.5 font-medium">
+                  🕒 {occ.bill.name} <span className="text-[10px] bg-indigo-100 dark:bg-indigo-900/50 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.2 rounded-full font-sans not-italic">Projected</span>
+                </span>
+                <span className="font-semibold text-indigo-600 dark:text-indigo-400">
+                  -{formatCurrency(Number(occ.bill.amount), currency)}
                 </span>
               </li>
             ))}

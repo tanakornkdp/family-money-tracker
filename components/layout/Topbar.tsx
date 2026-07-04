@@ -10,10 +10,12 @@ export default function Topbar({
   userEmail,
   avatarUrl,
   fullName,
+  onMenuToggle,
 }: {
   userEmail?: string;
   avatarUrl?: string | null;
   fullName?: string | null;
+  onMenuToggle?: () => void;
 }) {
   const router = useRouter();
   const supabase = createClient();
@@ -32,6 +34,15 @@ export default function Topbar({
   return (
     <header className="sticky top-0 z-30 flex items-center justify-between px-4 sm:px-6 py-3.5 border-b backdrop-blur-md bg-white/85 dark:bg-slate-950/85 border-slate-200 dark:border-slate-900 transition-colors">
       <div className="flex items-center gap-2.5">
+        {onMenuToggle && (
+          <button
+            onClick={onMenuToggle}
+            className="p-2 -ml-2 rounded-xl border border-transparent hover:border-slate-200 dark:hover:border-slate-800 hover:bg-slate-100 dark:hover:bg-slate-900 md:hidden text-slate-600 dark:text-slate-400"
+            title="Menu"
+          >
+            <Menu className="w-5 h-5" />
+          </button>
+        )}
         <div className="flex items-center gap-2 select-none">
           <div className="w-9 h-9 bg-gradient-to-tr from-indigo-600 to-indigo-400 rounded-xl items-center justify-center shadow-lg shadow-indigo-500/20 hidden md:flex">
             <Wallet className="w-4 h-4 text-white" />

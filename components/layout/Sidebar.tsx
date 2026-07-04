@@ -12,6 +12,7 @@ import {
   Target,
   CalendarDays,
   Settings,
+  RefreshCw,
 } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import clsx from "clsx";
@@ -26,6 +27,7 @@ export default function Sidebar() {
     { href: "/transactions", label: t.nav.transactions, icon: Receipt },
     { href: "/categories", label: t.nav.categories, icon: Tag },
     { href: "/credit-cards", label: t.nav.creditCards, icon: CreditCard },
+    { href: "/recurring-bills", label: t.nav.recurring, icon: RefreshCw },
     { href: "/receipts", label: t.nav.receipts, icon: ScanLine },
     { href: "/assistant", label: t.nav.assistant, icon: Bot, badge: "AI" },
     { href: "/household", label: t.nav.household, icon: Users },

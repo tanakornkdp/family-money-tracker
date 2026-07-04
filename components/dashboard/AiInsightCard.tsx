@@ -1,8 +1,10 @@
 "use client";
 
-import { useState } from "react";
-import { Sparkles, TrendingUp, AlertTriangle, Lightbulb, RefreshCw } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Sparkles, TrendingUp, AlertTriangle, Lightbulb, RefreshCw, ArrowRight } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { getUpcomingOccurrences, RecurringBill } from "@/services/recurringBills";
+import Link from "next/link";
 
 interface AiAnalysis {
   summary: string;
@@ -34,10 +36,28 @@ export default function AiInsightCard({
   topCategories: CategoryData[];
   period: string;
 }) {
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [analysis, setAnalysis] = useState<AiAnalysis | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [upcomingOccurrences, setUpcomingOccurrences] = useState<{ date: string; bill: RecurringBill }[]>([]);
+
+  useEffect(() => {
+    const load = async () => {
+      const today = new Date();
+      const todayStr = today.toISOString().split("T")[0];
+      const sevenDaysLater = new Date();
+      sevenDaysLater.setDate(today.getDate() + 7);
+      const sevenDaysLaterStr = sevenDaysLater.toISOString().split("T")[0];
+
+      // Fetch occurrences for the next 7 days
+      const occs = getUpcomingOccurrences(todayStr, sevenDaysLaterStr).filter(o => o.bill.type === "expense");
+      setUpcomingOccurrences(occs);
+    };
+    load();
+  }, []);
+
+  const totalUpcomingAmount = upcomingOccurrences.reduce((acc, curr) => acc + curr.bill.amount, 0);
 
   const handleAnalyze = async () => {
     setLoading(true);
@@ -47,7 +67,16 @@ export default function AiInsightCard({
       const res = await fetch("/api/ai/analyze", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ kpis, topCategories, period }),
+        body: JSON.stringify({
+          kpis,
+          topCategories,
+          period,
+          upcomingRecurring: upcomingOccurrences.map(o => ({
+            name: o.bill.name,
+            amount: o.bill.amount,
+            date: o.date,
+          })),
+        }),
       });
 
       if (!res.ok) throw new Error("Failed to analyze");
@@ -92,6 +121,42 @@ export default function AiInsightCard({
           </div>
         )}
       </div>
+
+      {upcomingOccurrences.length > 0 && (
+        <div className="mb-6 p-4 rounded-xl bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/60 text-amber-800 dark:text-amber-200">
+          <div className="flex items-center gap-2 mb-2">
+            <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
+            <h4 className="font-bold text-sm">
+              {locale === "th" 
+                ? `แจ้งเตือนรายจ่ายประจำ (7 วันข้างหน้า): ${upcomingOccurrences.length} รายการ`
+                : `Upcoming Bills (Next 7 Days): ${upcomingOccurrences.length} items`}
+            </h4>
+          </div>
+          <p className="text-xs mb-3">
+            {locale === "th"
+              ? `คุณมียอดที่ต้องเตรียมจ่ายรวม ${totalUpcomingAmount.toLocaleString()} บาท เพื่อไม่ให้กระทบต่องบประมาณรายวัน:`
+              : `You have total upcoming payments of ${totalUpcomingAmount.toLocaleString()} THB. Ensure you have funds allocated:`}
+          </p>
+          <ul className="space-y-1.5 text-xs">
+            {upcomingOccurrences.map((occ, i) => (
+              <li key={i} className="flex justify-between items-center bg-white/40 dark:bg-slate-900/40 px-2 py-1.5 rounded-lg border border-amber-100/50 dark:border-amber-900/20">
+                <span className="font-medium">🕒 {occ.bill.name}</span>
+                <span className="font-bold">
+                  {occ.date} ({occ.bill.amount.toLocaleString()} THB)
+                </span>
+              </li>
+            ))}
+          </ul>
+          <div className="mt-3 flex justify-end">
+            <Link 
+              href="/recurring-bills"
+              className="text-xs font-bold text-indigo-600 dark:text-indigo-400 hover:underline flex items-center gap-1"
+            >
+              {locale === "th" ? "จัดการรายการประจำ" : "Manage Recurring Bills"} <ArrowRight className="w-3 h-3" />
+            </Link>
+          </div>
+        </div>
+      )}
 
       {!analysis && !loading && (
         <div className="text-center py-6">
