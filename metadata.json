@@ -1,0 +1,6 @@
+{
+  "name": "Family Money Tracker",
+  "description": "An AI-powered family finance tracking application with receipt scanning (OCR) and smart budget insights.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
