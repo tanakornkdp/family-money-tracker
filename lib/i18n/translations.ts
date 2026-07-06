@@ -219,6 +219,8 @@ export const translations = {
       dayDetail: "Day Details",
       noTransactionsThisDay: "No transactions on this day.",
       dateValidationError: "End date must be after start date",
+      allPlans: "All Budget Plans",
+      jumpToPlan: "Jump to Month",
     },
     categories: {
       title: "Categories",
@@ -540,6 +542,8 @@ export const translations = {
       dayDetail: "รายละเอียดวันนี้",
       noTransactionsThisDay: "ไม่มีรายการในวันนี้",
       dateValidationError: "วันที่สิ้นสุดต้องอยู่หลังจากวันที่เริ่มต้น",
+      allPlans: "แผนงบประมาณทั้งหมด",
+      jumpToPlan: "ไปยังเดือนของแผน",
     },
     categories: {
       title: "หมวดหมู่",

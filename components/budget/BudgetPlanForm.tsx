@@ -12,11 +12,13 @@ import Card from "@/components/ui/Card";
 export default function BudgetPlanForm({
   userId,
   households,
+  initialHouseholdId = "",
   onCreated,
   onCancel,
 }: {
   userId: string;
   households: Household[];
+  initialHouseholdId?: string;
   onCreated: (plan: BudgetPlan) => void;
   onCancel: () => void;
 }) {
@@ -27,7 +29,7 @@ export default function BudgetPlanForm({
   const [totalAmount, setTotalAmount] = useState("");
   const [startDate, setStartDate] = useState(() => new Date().toISOString().split("T")[0]);
   const [endDate, setEndDate] = useState("");
-  const [householdId, setHouseholdId] = useState("");
+  const [householdId, setHouseholdId] = useState(initialHouseholdId);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 

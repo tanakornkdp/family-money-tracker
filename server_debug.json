@@ -1,0 +1,42 @@
+{
+  "timestamp": "2026-07-06T08:49:02.359Z",
+  "currentUserId": "f44b7804-16a5-445e-ae97-480708091a65",
+  "userIds": [
+    "f44b7804-16a5-445e-ae97-480708091a65",
+    "f44b7804-16a5-445e-ae97-480708091a65",
+    "f44b7804-16a5-445e-ae97-480708091a65",
+    "f44b7804-16a5-445e-ae97-480708091a65",
+    "f44b7804-16a5-445e-ae97-480708091a65",
+    "f44b7804-16a5-445e-ae97-480708091a65",
+    "f44b7804-16a5-445e-ae97-480708091a65",
+    "f44b7804-16a5-445e-ae97-480708091a65",
+    "f44b7804-16a5-445e-ae97-480708091a65",
+    "f44b7804-16a5-445e-ae97-480708091a65",
+    "f44b7804-16a5-445e-ae97-480708091a65"
+  ],
+  "userProfiles": {
+    "f44b7804-16a5-445e-ae97-480708091a65": {
+      "name": "ikQ",
+      "avatarUrl": "https://zgcarubkhhlzqicsrdtq.supabase.co/storage/v1/object/public/avatars/f44b7804-16a5-445e-ae97-480708091a65/avatar.jpg"
+    }
+  },
+  "settings": {
+    "user_id": "f44b7804-16a5-445e-ae97-480708091a65",
+    "currency": "THB",
+    "language": "en",
+    "theme": "system",
+    "avatar_url": "https://zgcarubkhhlzqicsrdtq.supabase.co/storage/v1/object/public/avatars/f44b7804-16a5-445e-ae97-480708091a65/avatar.jpg",
+    "full_name": "ikQ",
+    "updated_at": "2026-06-25T11:39:25.62+00:00"
+  },
+  "userData": {
+    "id": "f44b7804-16a5-445e-ae97-480708091a65",
+    "email": "tanakorn.kdp@gmail.com",
+    "metadata": {
+      "email": "tanakorn.kdp@gmail.com",
+      "email_verified": true,
+      "phone_verified": false,
+      "sub": "f44b7804-16a5-445e-ae97-480708091a65"
+    }
+  }
+}

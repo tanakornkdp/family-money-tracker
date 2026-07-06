@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getTransactions } from "@/services/transactions";
-import { getDisplayNamesByUserIds, getUserSettings } from "@/services/userSettings";
+import { getDisplayNamesByUserIds, getUserSettings, getUserProfilesByIds } from "@/services/userSettings";
 import { getCategoryIconMap } from "@/services/categories";
 import { translations, Locale } from "@/lib/i18n/translations";
 import TransactionsPageClient from "@/components/transactions/TransactionsPageClient";
@@ -26,8 +26,29 @@ export default async function TransactionsPage() {
   const currency = settings?.currency ?? "THB";
 
   const userIds = transactions.map((tx) => tx.user_id);
+  const userProfiles = await getUserProfilesByIds(supabase, userIds);
+  
+  if (currentUserId) {
+    userProfiles[currentUserId] = {
+      name: settings?.full_name || userData?.user?.user_metadata?.full_name || userData?.user?.email?.split("@")[0] || "You",
+      avatarUrl: settings?.avatar_url || userData?.user?.user_metadata?.avatar_url || null,
+    };
+  }
+
+  console.log("SERVER SIDE - userProfiles:", userProfiles, "currentUserId:", currentUserId);
+
   const displayNames = await getDisplayNamesByUserIds(supabase, userIds);
   const categoryIconMap = await getCategoryIconMap(supabase);
+
+  const serverSideDebug = {
+    userIds,
+    currentUserId,
+    userProfiles,
+    hasSettings: !!settings,
+    settingsFullName: settings?.full_name || null,
+    settingsAvatarUrl: settings?.avatar_url || null,
+    userDataEmail: userData?.user?.email || null,
+  };
 
   return (
     <div className="space-y-8">
@@ -46,6 +67,8 @@ export default async function TransactionsPage() {
         currentUserId={currentUserId}
         currency={currency}
         initialCategoryIconMap={categoryIconMap}
+        userProfiles={userProfiles}
+        serverSideDebug={serverSideDebug}
       />
     </div>
   );

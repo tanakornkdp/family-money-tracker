@@ -56,18 +56,27 @@ export async function deleteBudgetPlan(supabase: SupabaseClient, planId: string)
   if (error) throw new Error(error.message);
 }
 
+function parseDateUtc(dateStr: string): Date {
+  const matches = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (!matches) {
+    const d = new Date(dateStr);
+    return isNaN(d.getTime()) ? new Date() : d;
+  }
+  return new Date(Date.UTC(Number(matches[1]), Number(matches[2]) - 1, Number(matches[3]), 12, 0, 0, 0));
+}
+
 function getDaysBetween(startDate: string, endDate: string): number {
-  const start = new Date(startDate);
-  const end = new Date(endDate);
+  const start = parseDateUtc(startDate);
+  const end = parseDateUtc(endDate);
   const diffMs = end.getTime() - start.getTime();
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+  return Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
 }
 
 function getDayIndex(startDate: string, targetDate: string): number {
-  const start = new Date(startDate);
-  const target = new Date(targetDate);
+  const start = parseDateUtc(startDate);
+  const target = parseDateUtc(targetDate);
   const diffMs = target.getTime() - start.getTime();
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
+  return Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
 }
 
 /**
@@ -81,20 +90,24 @@ export function calculateDailyBudgetStatuses(
   transactions: Transaction[],
   upcomingRecurring: { date: string; amount: number }[] = []
 ): Map<string, DailyBudgetStatus> {
-  const totalDays = getDaysBetween(plan.start_date, plan.end_date);
+  const pStart = plan.start_date.substring(0, 10);
+  const pEnd = plan.end_date.substring(0, 10);
+  const totalDays = getDaysBetween(pStart, pEnd);
   const dailyAllowance = plan.total_amount / totalDays;
 
   const expensesByDate = new Map<string, number>();
   for (const t of transactions) {
     if (t.type !== "expense") continue;
-    if (t.date < plan.start_date || t.date > plan.end_date) continue;
-    expensesByDate.set(t.date, (expensesByDate.get(t.date) ?? 0) + Number(t.amount));
+    const txDate = t.date.substring(0, 10);
+    if (txDate < pStart || txDate > pEnd) continue;
+    expensesByDate.set(txDate, (expensesByDate.get(txDate) ?? 0) + Number(t.amount));
   }
 
   const projectedByDate = new Map<string, number>();
   for (const rec of upcomingRecurring) {
-    if (rec.date < plan.start_date || rec.date > plan.end_date) continue;
-    projectedByDate.set(rec.date, (projectedByDate.get(rec.date) ?? 0) + rec.amount);
+    const recDate = rec.date.substring(0, 10);
+    if (recDate < pStart || recDate > pEnd) continue;
+    projectedByDate.set(recDate, (projectedByDate.get(recDate) ?? 0) + rec.amount);
   }
 
   const statuses = new Map<string, DailyBudgetStatus>();
@@ -106,10 +119,9 @@ export function calculateDailyBudgetStatuses(
   const localToday = new Date(today.getTime() - (offset * 60 * 1000));
   const todayStr = localToday.toISOString().split("T")[0];
 
-  const start = new Date(plan.start_date);
+  const start = parseDateUtc(pStart);
   for (let i = 0; i < totalDays; i++) {
-    const current = new Date(start);
-    current.setDate(start.getDate() + i);
+    const current = new Date(start.getTime() + i * 24 * 60 * 60 * 1000);
     const dateStr = current.toISOString().split("T")[0];
 
     const actualSpent = expensesByDate.get(dateStr) ?? 0;

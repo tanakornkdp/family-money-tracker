@@ -13,12 +13,16 @@ export default function TransactionsPageClient({
   currentUserId,
   currency,
   initialCategoryIconMap,
+  userProfiles = {},
+  serverSideDebug,
 }: {
   transactions: Transaction[];
   displayNames: Record<string, string>;
   currentUserId: string;
   currency: string;
   initialCategoryIconMap: Record<string, string>;
+  userProfiles?: Record<string, { name: string; avatarUrl: string | null }>;
+  serverSideDebug?: unknown;
 }) {
   const { t } = useLanguage();
   const [categoryIconMap, setCategoryIconMap] = useState(initialCategoryIconMap);
@@ -124,6 +128,8 @@ export default function TransactionsPageClient({
           currentUserId={currentUserId}
           currency={currency}
           categoryIconMap={categoryIconMap}
+          userProfiles={userProfiles}
+          serverSideDebug={serverSideDebug}
         />
 
         {filtered.length === 0 && transactions.length > 0 && (

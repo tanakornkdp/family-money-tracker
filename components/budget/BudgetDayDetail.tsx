@@ -26,7 +26,7 @@ export default async function BudgetDayDetail({
     return <p className="text-sm text-slate-500 dark:text-slate-400">{t.budget.noActivePlan}</p>;
   }
 
-  const dayTransactions = transactions.filter((tx) => tx.date === status.date && tx.type === "expense");
+  const dayTransactions = transactions.filter((tx) => tx.date.substring(0, 10) === status.date && tx.type === "expense");
 
   return (
     <div className="space-y-4">
