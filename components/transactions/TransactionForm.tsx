@@ -639,7 +639,7 @@ export default function TransactionForm({
                     )
                     .map((card) => (
                       <option key={card.id} value={card.id}>
-                        {card.name}
+                        {card.name.includes("|") ? card.name.split("|")[0] + " " + card.name.split("|")[1] : "💳 " + card.name}
                       </option>
                     ))}
                 </select>

@@ -20,6 +20,8 @@ const CARD_COLORS = [
   "#3b82f6", "#a855f7", "#ef4444", "#06b6d4",
 ];
 
+const CARD_ICONS = ["💳", "🏧", "💵", "💴", "💶", "💷", "👛", "💰", "⭐", "🔥", "⚡", "🚗", "✈️", "🛍️"];
+
 const CardTypeSelector = ({
   value,
   onChange,
@@ -65,6 +67,7 @@ export default function CreditCardsManager({
   const [newBillingDate, setNewBillingDate] = useState("");
   const [newDueDate, setNewDueDate] = useState("");
   const [newColor, setNewColor] = useState(CARD_COLORS[0]);
+  const [newIcon, setNewIcon] = useState("💳");
 
   const [editingCard, setEditingCard] = useState<CardWithBalance | null>(null);
   const [editName, setEditName] = useState("");
@@ -73,6 +76,7 @@ export default function CreditCardsManager({
   const [editBillingDate, setEditBillingDate] = useState("");
   const [editDueDate, setEditDueDate] = useState("");
   const [editColor, setEditColor] = useState(CARD_COLORS[0]);
+  const [editIcon, setEditIcon] = useState("💳");
 
   const [payingCard, setPayingCard] = useState<CardWithBalance | null>(null);
   const [payAmount, setPayAmount] = useState("");
@@ -83,8 +87,9 @@ export default function CreditCardsManager({
     setLoading(true);
     setError(null);
     try {
+      const dbName = `${newIcon}|${newName.trim()}`;
       const newCard = await createCreditCard(supabase, userId, {
-        name: newName.trim(),
+        name: dbName,
         card_type: newCardType,
         credit_limit: newCardType === "credit" ? parseFloat(newLimit) : 0,
         billing_date: newBillingDate ? parseInt(newBillingDate) : null,
@@ -94,7 +99,7 @@ export default function CreditCardsManager({
       setCards((prev) => [...prev, { ...newCard, balance: 0, available: newCard.credit_limit }]);
       setShowCreateModal(false);
       setNewName(""); setNewLimit(""); setNewBillingDate(""); setNewDueDate("");
-      setNewCardType("credit"); setNewColor(CARD_COLORS[0]);
+      setNewCardType("credit"); setNewColor(CARD_COLORS[0]); setNewIcon("💳");
       router.refresh();
     } catch (err) {
       setError((err as Error).message);
@@ -105,7 +110,11 @@ export default function CreditCardsManager({
 
   const openEdit = (card: CardWithBalance) => {
     setEditingCard(card);
-    setEditName(card.name);
+    const [icon, name] = card.name.includes("|")
+      ? card.name.split("|")
+      : [card.card_type === "debit" ? "🏧" : "💳", card.name];
+    setEditName(name);
+    setEditIcon(icon);
     setEditCardType(card.card_type);
     setEditLimit(card.credit_limit.toString());
     setEditBillingDate(card.billing_date?.toString() ?? "");
@@ -118,8 +127,9 @@ export default function CreditCardsManager({
     setLoading(true);
     setError(null);
     try {
+      const dbName = `${editIcon}|${editName.trim()}`;
       const updated = await updateCreditCard(supabase, editingCard.id, {
-        name: editName.trim(),
+        name: dbName,
         card_type: editCardType,
         credit_limit: editCardType === "credit" ? parseFloat(editLimit) : 0,
         billing_date: editBillingDate ? parseInt(editBillingDate) : null,
@@ -218,20 +228,24 @@ export default function CreditCardsManager({
         </Card>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-          {cards.map((card) => (
-            <div key={card.id} className="rounded-2xl p-5 text-white shadow-lg relative overflow-hidden flex flex-col"
-              style={{ background: `linear-gradient(135deg, ${card.color}dd, ${card.color}99)` }}>
-              <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-white/10 -translate-y-8 translate-x-8" />
-              <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full bg-white/10 translate-y-8 -translate-x-8" />
+          {cards.map((card) => {
+            const [cardIcon, cardDisplayName] = card.name.includes("|")
+              ? card.name.split("|")
+              : [card.card_type === "debit" ? "🏧" : "💳", card.name];
+            return (
+              <div key={card.id} className="rounded-2xl p-5 text-white shadow-lg relative overflow-hidden flex flex-col"
+                style={{ background: `linear-gradient(135deg, ${card.color}dd, ${card.color}99)` }}>
+                <div className="absolute top-0 right-0 w-32 h-32 rounded-full bg-white/10 -translate-y-8 translate-x-8" />
+                <div className="absolute bottom-0 left-0 w-24 h-24 rounded-full bg-white/10 translate-y-8 -translate-x-8" />
 
-              <div className="relative z-10 flex flex-col flex-1">
-                <div className="flex justify-between items-start mb-4">
-                  <div>
-                    <p className="text-xs text-white/70 font-medium uppercase tracking-wide">
-                      {card.card_type === "debit" ? "🏧 " + t.creditCards.debit : "💳 " + t.creditCards.credit}
-                    </p>
-                    <h3 className="font-bold text-lg">{card.name}</h3>
-                  </div>
+                <div className="relative z-10 flex flex-col flex-1">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <p className="text-xs text-white/70 font-medium uppercase tracking-wide">
+                        {cardIcon} {card.card_type === "debit" ? t.creditCards.debit : t.creditCards.credit}
+                      </p>
+                      <h3 className="font-bold text-lg">{cardDisplayName}</h3>
+                    </div>
                   <div className="flex gap-1.5">
                     <button onClick={() => openEdit(card)} className="p-1.5 rounded-lg bg-white/20 hover:bg-white/30 transition">
                       <Pencil size={13} />
@@ -270,11 +284,12 @@ export default function CreditCardsManager({
                   onClick={() => { setPayingCard(card); setPayAmount(""); }}
                   className="w-full py-2 rounded-xl bg-white/20 hover:bg-white/30 text-sm font-semibold transition mt-auto"
                 >
-                  {card.card_type === "debit" ? `💰 ${t.creditCards.topUp}` : `💳 ${t.creditCards.payCard}`}
+                  {card.card_type === "debit" ? `💸 ${t.creditCards.topUp}` : `💳 ${t.creditCards.payCard}`}
                 </button>
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       )}
 
@@ -286,6 +301,25 @@ export default function CreditCardsManager({
             <CardTypeSelector value={newCardType} onChange={setNewCardType} creditLabel={t.creditCards.credit} debitLabel={t.creditCards.debit} />
           </div>
           <Input label={t.creditCards.cardName} value={newName} onChange={(e) => setNewName(e.target.value)} />
+          <div>
+            <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">เลือกไอคอน (Card Icon)</p>
+            <div className="flex gap-2 flex-wrap">
+              {CARD_ICONS.map((emoji) => (
+                <button
+                  key={emoji}
+                  type="button"
+                  onClick={() => setNewIcon(emoji)}
+                  className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all border-2 ${
+                    newIcon === emoji
+                      ? "bg-slate-900 border-slate-900 text-white dark:bg-slate-100 dark:border-slate-100 dark:text-slate-900"
+                      : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900"
+                  }`}
+                >
+                  {emoji}
+                </button>
+              ))}
+            </div>
+          </div>
           {newCardType === "credit" && (
             <>
               <Input label={t.creditCards.creditLimit} type="number" min="0" value={newLimit} onChange={(e) => setNewLimit(e.target.value)} />
@@ -315,13 +349,32 @@ export default function CreditCardsManager({
 
       {/* Edit Modal */}
       {editingCard && (
-        <Modal open={!!editingCard} onClose={() => setEditingCard(null)} title={t.creditCards.editCardTitle.replace("{name}", editingCard.name)}>
+        <Modal open={!!editingCard} onClose={() => setEditingCard(null)} title={t.creditCards.editCardTitle.replace("{name}", editingCard.name.includes("|") ? editingCard.name.split("|")[1] : editingCard.name)}>
           <div className="space-y-4">
             <div>
               <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">{t.creditCards.cardType}</p>
               <CardTypeSelector value={editCardType} onChange={setEditCardType} creditLabel={t.creditCards.credit} debitLabel={t.creditCards.debit} />
             </div>
             <Input label={t.creditCards.cardName} value={editName} onChange={(e) => setEditName(e.target.value)} />
+            <div>
+              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-2">เลือกไอคอน (Card Icon)</p>
+              <div className="flex gap-2 flex-wrap">
+                {CARD_ICONS.map((emoji) => (
+                  <button
+                    key={emoji}
+                    type="button"
+                    onClick={() => setEditIcon(emoji)}
+                    className={`w-10 h-10 rounded-xl flex items-center justify-center text-xl transition-all border-2 ${
+                      editIcon === emoji
+                        ? "bg-slate-900 border-slate-900 text-white dark:bg-slate-100 dark:border-slate-100 dark:text-slate-900"
+                        : "border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 bg-white dark:bg-slate-900"
+                    }`}
+                  >
+                    {emoji}
+                  </button>
+                ))}
+              </div>
+            </div>
             {editCardType === "credit" && (
               <>
                 <Input label={t.creditCards.creditLimit} type="number" min="0" value={editLimit} onChange={(e) => setEditLimit(e.target.value)} />

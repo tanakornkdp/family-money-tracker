@@ -326,11 +326,16 @@ export default function ReceiptList({
                         <option value="">-- {t.creditCards.selectCard} --</option>
                         {creditCards
                           .filter((c) => c.card_type === (paymentMethod === "credit_card" ? "credit" : "debit"))
-                          .map((card) => (
-                            <option key={card.id} value={card.id}>
-                              {card.name} ({card.card_type === "credit" ? t.creditCards.credit : t.creditCards.debit})
-                            </option>
-                          ))}
+                          .map((card) => {
+                            const [cardIcon, cardDisplayName] = card.name.includes("|")
+                              ? card.name.split("|")
+                              : [card.card_type === "debit" ? "🏧" : "💳", card.name];
+                            return (
+                              <option key={card.id} value={card.id}>
+                                {cardIcon} {cardDisplayName} ({card.card_type === "credit" ? t.creditCards.credit : t.creditCards.debit})
+                              </option>
+                            );
+                          })}
                       </select>
                     </div>
                   )}

@@ -3,9 +3,10 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Transaction, TransactionType, Category, FinancialGoal } from "@/types";
+import { Transaction, TransactionType, Category, FinancialGoal, PaymentMethod, CreditCard } from "@/types";
 import { getCategories, getCategoryIconMap } from "@/services/categories";
 import { getGoals } from "@/services/goals";
+import { getCreditCards } from "@/services/creditCards";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
@@ -27,10 +28,13 @@ export default function EditTransactionModal({
   const [title, setTitle] = useState(transaction.title);
   const [type, setType] = useState<TransactionType>(transaction.type);
   const [category, setCategory] = useState(transaction.category);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(transaction.payment_method || "cash");
+  const [cardId, setCardId] = useState<string | null>(transaction.card_id);
   const [goalId, setGoalId] = useState("");
   const [categories, setCategories] = useState<Category[]>([]);
   const [categoryIconMap, setCategoryIconMap] = useState<Record<string, string>>({});
   const [goals, setGoals] = useState<FinancialGoal[]>([]);
+  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,10 +43,12 @@ export default function EditTransactionModal({
       const catData = await getCategories(supabase);
       const iconMap = await getCategoryIconMap(supabase);
       const goalData = await getGoals(supabase);
+      const cardData = await getCreditCards(supabase);
 
       setCategories(catData);
       setCategoryIconMap(iconMap);
       setGoals(goalData.filter((g) => g.status === "active"));
+      setCreditCards(cardData);
     } catch {
       // ignore
     }
@@ -54,6 +60,8 @@ export default function EditTransactionModal({
       setTitle(transaction.title);
       setType(transaction.type);
       setCategory(transaction.category);
+      setPaymentMethod(transaction.payment_method || "cash");
+      setCardId(transaction.card_id);
       loadOptions();
     });
   }, [open, transaction]);
@@ -70,6 +78,8 @@ export default function EditTransactionModal({
           title: title,
           type: type,
           category: category,
+          payment_method: paymentMethod,
+          card_id: (paymentMethod === "credit_card" || paymentMethod === "debit_card") ? (cardId || null) : null,
         }),
       });
 
@@ -142,6 +152,54 @@ export default function EditTransactionModal({
             ))}
           </select>
         </div>
+
+        <div className="flex flex-col gap-1.5">
+          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+            {t.creditCards.paymentMethod}
+          </label>
+          <select
+            value={paymentMethod}
+            onChange={(e) => {
+              const method = e.target.value as PaymentMethod;
+              setPaymentMethod(method);
+              if (method === "cash") {
+                setCardId(null);
+              } else {
+                const filteredCards = creditCards.filter((c) =>
+                  method === "credit_card" ? c.card_type === "credit" : c.card_type === "debit"
+                );
+                setCardId(filteredCards[0]?.id ?? null);
+              }
+            }}
+            className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
+            <option value="cash">{t.creditCards.cash}</option>
+            <option value="credit_card">{t.creditCards.creditCard}</option>
+            <option value="debit_card">{t.creditCards.debitCard}</option>
+          </select>
+        </div>
+
+        {(paymentMethod === "credit_card" || paymentMethod === "debit_card") && (
+          <div className="flex flex-col gap-1.5">
+            <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
+              {paymentMethod === "credit_card" ? t.creditCards.creditCard : t.creditCards.debitCard}
+            </label>
+            <select
+              value={cardId || ""}
+              onChange={(e) => setCardId(e.target.value || null)}
+              className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+            >
+              <option value="">-- {t.creditCards.selectCard} --</option>
+              {creditCards
+                .filter((c) => (paymentMethod === "credit_card" ? c.card_type === "credit" : c.card_type === "debit"))
+                .map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name.includes("|") ? c.name.split("|")[0] + " " + c.name.split("|")[1] : "💳 " + c.name}
+                  </option>
+                ))}
+            </select>
+          </div>
+        )}
 
         {goals.length > 0 && (
           <div className="flex flex-col gap-1.5">

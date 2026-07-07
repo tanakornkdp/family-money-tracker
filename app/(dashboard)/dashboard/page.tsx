@@ -174,14 +174,18 @@ export default async function DashboardPage({
       
       {creditCards.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {creditCards.map((card) => (
-            <div
-              key={card.id}
-              className="p-5 rounded-2xl text-white shadow-md relative overflow-hidden"
-              style={{ background: `linear-gradient(135deg, ${card.color}dd, ${card.color}88)` }}
-            >
-              <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
-              <p className="text-xs text-white/70 uppercase tracking-wide font-medium mb-1">💳 {card.name}</p>
+          {creditCards.map((card) => {
+            const [cardIcon, cardDisplayName] = card.name.includes("|")
+              ? card.name.split("|")
+              : [card.card_type === "debit" ? "🏧" : "💳", card.name];
+            return (
+              <div
+                key={card.id}
+                className="p-5 rounded-2xl text-white shadow-md relative overflow-hidden"
+                style={{ background: `linear-gradient(135deg, ${card.color}dd, ${card.color}88)` }}
+              >
+                <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
+                <p className="text-xs text-white/70 uppercase tracking-wide font-medium mb-1">{cardIcon} {cardDisplayName}</p>
               <p className="text-2xl font-bold">
                 {formatCurrency(card.balance, currency)}
               </p>
@@ -199,7 +203,8 @@ export default async function DashboardPage({
                 />
               </div>
             </div>
-          ))}
+          );
+        })}
         </div>
       )}
 
