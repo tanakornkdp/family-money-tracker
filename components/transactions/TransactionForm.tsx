@@ -136,6 +136,8 @@ export default function TransactionForm({
       loadCategories();
       loadCreditCards();
     });
+  // These loaders intentionally run once on mount; each loader handles its own current state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

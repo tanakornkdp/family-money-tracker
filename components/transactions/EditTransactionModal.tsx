@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Transaction, TransactionType, Category, FinancialGoal } from "@/types";
@@ -34,7 +34,7 @@ export default function EditTransactionModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function loadOptions() {
+  const loadOptions = useCallback(async () => {
     try {
       const catData = await getCategories(supabase);
       const iconMap = await getCategoryIconMap(supabase);
@@ -46,7 +46,7 @@ export default function EditTransactionModal({
     } catch {
       // ignore
     }
-  }
+  }, [supabase]);
 
   useEffect(() => {
     if (!open) return;
@@ -56,7 +56,7 @@ export default function EditTransactionModal({
       setCategory(transaction.category);
       loadOptions();
     });
-  }, [open, transaction]);
+  }, [loadOptions, open, transaction]);
 
   const handleSave = async () => {
     setLoading(true);

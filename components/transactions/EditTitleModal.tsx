@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { TransactionTitle, TransactionType, Category, FinancialGoal } from "@/types";
@@ -57,7 +57,7 @@ export default function EditTitleModal({
   const [editCategoryIcon, setEditCategoryIcon] = useState("💰");
   const [savingEditCategory, setSavingEditCategory] = useState(false);
 
-  async function loadOptions() {
+  const loadOptions = useCallback(async () => {
     try {
       const catData = await getCategories(supabase);
       const iconMap = await getCategoryIconMap(supabase);
@@ -69,7 +69,7 @@ export default function EditTitleModal({
     } catch {
       // ignore
     }
-  }
+  }, [supabase]);
 
   useEffect(() => {
     if (!open) return;
@@ -81,7 +81,7 @@ export default function EditTitleModal({
       setConfirmDelete(false);
       loadOptions();
     });
-  }, [open, titleItem]);
+  }, [loadOptions, open, titleItem]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
