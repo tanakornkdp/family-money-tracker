@@ -31,15 +31,6 @@ export default function TransactionsPageClient({
     setCategoryIconMap((prev) => ({ ...prev, [categoryName]: icon }));
   };
 
-  const handleCategoryRenamed = (oldName: string, newName: string, icon: string) => {
-    setCategoryIconMap((prev) => {
-      const next = { ...prev };
-      delete next[oldName];
-      next[newName] = icon;
-      return next;
-    });
-  };
-
   const categories = useMemo(() => {
     const set = new Set(transactions.map((tx) => tx.category));
     return Array.from(set).sort();
@@ -70,7 +61,6 @@ export default function TransactionsPageClient({
         <TransactionForm
           categoryIconMap={categoryIconMap}
           onIconChanged={handleIconChanged}
-          onCategoryRenamed={handleCategoryRenamed}
         />
       </div>
 

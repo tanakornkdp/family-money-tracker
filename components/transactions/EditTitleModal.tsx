@@ -138,8 +138,6 @@ export default function EditTitleModal({
       const { data: userData } = await supabase.auth.getUser();
       if (!userData?.user) throw new Error("Not authenticated");
 
-      const oldName = editCategoryName === category ? category : category;
-      const targetOldName = categoryIconMap[editCategoryName] !== undefined ? editCategoryName : category;
 
       await renameCategory(supabase, userData.user.id, category, editCategoryName.trim(), editCategoryIcon);
 

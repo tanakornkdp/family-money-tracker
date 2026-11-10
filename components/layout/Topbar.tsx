@@ -1,10 +1,11 @@
 "use client";
 
 import { useRouter } from "next/navigation";
+import Image from "next/image";
 import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useDarkMode } from "@/lib/hooks/useDarkMode";
-import { Sun, Moon, LogOut, Menu, Wallet } from "lucide-react";
+import { Sun, Moon, LogOut, Wallet } from "lucide-react";
 
 export default function Topbar({
   userEmail,
@@ -63,9 +64,12 @@ export default function Topbar({
 
         <div className="flex items-center gap-2.5 border-l pl-3 border-slate-200 dark:border-slate-800">
           {avatarUrl ? (
-            <img
+            <Image
               src={avatarUrl}
               alt={displayName}
+              width={32}
+              height={32}
+              unoptimized
               className="w-8 h-8 rounded-full border border-slate-200 dark:border-slate-700 object-cover"
             />
           ) : (

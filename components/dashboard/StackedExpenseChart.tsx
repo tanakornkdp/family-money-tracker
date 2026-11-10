@@ -9,8 +9,6 @@ import {
   Tooltip,
   CartesianGrid,
   ResponsiveContainer,
-  TooltipProps,
-  Cell,
 } from "recharts";
 import { StackedBarPoint } from "@/services/transactions";
 import { formatCurrency } from "@/lib/utils/formatCurrency";

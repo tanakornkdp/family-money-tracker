@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useDarkMode } from "@/lib/hooks/useDarkMode";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -21,7 +20,6 @@ export default function SettingsForm({
   userEmail: string;
   userId: string;
 }) {
-  const router = useRouter();
   const supabase = createClient();
   const { toggle: toggleDarkMode, isDark } = useDarkMode();
   const { locale, setLocale, t } = useLanguage();

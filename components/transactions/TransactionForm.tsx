@@ -22,11 +22,9 @@ import { CreditCard as CreditCardIcon, Banknote, Wallet } from "lucide-react";
 export default function TransactionForm({
   categoryIconMap: externalIconMap,
   onIconChanged,
-  onCategoryRenamed,
 }: {
   categoryIconMap?: Record<string, string>;
   onIconChanged?: (categoryName: string, icon: string) => void;
-  onCategoryRenamed?: (oldName: string, newName: string, icon: string) => void;
 } = {}) {
   const router = useRouter();
   const { t } = useLanguage();

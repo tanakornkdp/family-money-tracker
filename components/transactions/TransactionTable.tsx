@@ -26,10 +26,6 @@ export default function TransactionTable({
   const router = useRouter();
   const { t } = useLanguage();
   const [editingTx, setEditingTx] = useState<Transaction | null>(null);
-  const [localIconMap, setLocalIconMap] = useState<Record<string, string>>(categoryIconMap);
-
-  const effectiveIconMap = { ...categoryIconMap, ...localIconMap };
-
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const handleDelete = async (id: string) => {

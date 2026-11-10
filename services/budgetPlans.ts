@@ -63,13 +63,6 @@ function getDaysBetween(startDate: string, endDate: string): number {
   return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
 }
 
-function getDayIndex(startDate: string, targetDate: string): number {
-  const start = new Date(startDate);
-  const target = new Date(targetDate);
-  const diffMs = target.getTime() - start.getTime();
-  return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
-}
-
 /**
  * Calculates daily budget status for every day in the plan range,
  * using cumulative carry-over logic: unused budget rolls into future days.
