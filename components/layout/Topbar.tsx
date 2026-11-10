@@ -38,7 +38,7 @@ export default function Topbar({
             <Wallet className="w-4 h-4 text-white" />
           </div>
           <span className="font-bold text-sm bg-gradient-to-r from-indigo-500 to-purple-500 bg-clip-text text-transparent">
-            Smart Finance AI
+            Family Money
           </span>
         </div>
       </div>

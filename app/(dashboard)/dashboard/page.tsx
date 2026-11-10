@@ -34,6 +34,8 @@ import StackedExpenseChart from "@/components/dashboard/StackedExpenseChart";
 import CategoryBreakdownChart from "@/components/dashboard/CategoryBreakdownChart";
 import { getCardsWithBalance } from "@/services/creditCards";
 import AiInsightCard from "@/components/dashboard/AiInsightCard";
+import Link from "next/link";
+import { Camera, Image as ImageIcon, Mic, QrCode, Sparkles } from "lucide-react";
 
 async function getServerLocale(): Promise<Locale> {
   const cookieStore = await cookies();
@@ -127,6 +129,28 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-8">
+      <section className="md:hidden rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200/80 dark:bg-slate-900 dark:ring-slate-800">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold text-slate-400">มุมมองของฉัน</p>
+            <h1 className="mt-1 text-xl font-bold text-slate-900 dark:text-white">สรุปการเงิน</h1>
+          </div>
+          <Link href="/assistant" className="rounded-full bg-emerald-50 p-2.5 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300" aria-label="เปิดผู้ช่วย AI"><Sparkles size={20} /></Link>
+        </div>
+        <div className="mt-5 grid grid-cols-2 divide-x divide-slate-200 rounded-2xl bg-slate-50 p-3 dark:divide-slate-700 dark:bg-slate-800/70">
+          <div className="px-2"><p className="text-xs text-slate-400">รายรับเดือนนี้</p><p className="mt-1 text-lg font-bold text-emerald-600">{formatCurrency(kpis.totalIncome, currency)}</p></div>
+          <div className="px-3"><p className="text-xs text-slate-400">รายจ่ายเดือนนี้</p><p className="mt-1 text-lg font-bold text-rose-500">{formatCurrency(kpis.totalExpense, currency)}</p></div>
+        </div>
+        <div className="mt-5 grid grid-cols-4 gap-2">
+          {[
+            { href: "/receipts", label: "ถ่ายสลิป", icon: Camera },
+            { href: "/receipts", label: "คลังภาพ", icon: ImageIcon },
+            { href: "/assistant", label: "พูดกับ AI", icon: Mic },
+            { href: "/receipts", label: "สแกน QR", icon: QrCode },
+          ].map(({ href, label, icon: Icon }) => <Link key={label} href={href} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl bg-emerald-50 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"><Icon size={21} /><span>{label}</span></Link>)}
+        </div>
+      </section>
+
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <DashboardHeader />
         <HouseholdViewSwitcher
