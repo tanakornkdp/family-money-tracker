@@ -20,6 +20,19 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { kpis, topCategories, period } = body;
 
+    if (
+      !kpis ||
+      !Array.isArray(topCategories) ||
+      topCategories.length > 10 ||
+      typeof period !== "string" ||
+      typeof kpis.totalIncome !== "number" ||
+      typeof kpis.totalExpense !== "number" ||
+      typeof kpis.balance !== "number" ||
+      typeof kpis.transactionCount !== "number"
+    ) {
+      return NextResponse.json({ error: "Invalid analysis input" }, { status: 400 });
+    }
+
     const prompt = `คุณเป็นผู้เชี่ยวชาญด้านการเงินส่วนตัว วิเคราะห์ข้อมูลการเงินต่อไปนี้และให้คำแนะนำเป็นภาษาไทย:
 
 ข้อมูลช่วง ${period}:
