@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
-import { createGoal, deleteGoal, addContribution, updateGoalStatus } from "@/services/goals";
+import { createGoal, deleteGoal, addContribution } from "@/services/goals";
 import { FinancialGoal, GoalType, Household } from "@/types";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import Card from "@/components/ui/Card";

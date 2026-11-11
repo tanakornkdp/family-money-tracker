@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import {
@@ -40,11 +40,7 @@ export default function BudgetCalendarManager({
   const [selectedDate, setSelectedDate] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => {
-    loadPlanForMonth();
-  }, [viewYear, viewMonth, plans]);
-
-  async function loadPlanForMonth() {
+  const loadPlanForMonth = useCallback(async () => {
     setLoading(true);
 
     const monthStart = `${viewYear}-${String(viewMonth + 1).padStart(2, "0")}-01`;
@@ -74,7 +70,11 @@ export default function BudgetCalendarManager({
       setLoading(false);
       setSelectedDate(null);
     }
-  }
+  }, [plans, supabase, viewMonth, viewYear]);
+
+  useEffect(() => {
+    Promise.resolve().then(() => loadPlanForMonth());
+  }, [loadPlanForMonth]);
 
   const handlePlanCreated = (plan: BudgetPlan) => {
     setPlans((prev) => [plan, ...prev]);

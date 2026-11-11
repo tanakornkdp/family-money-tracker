@@ -44,8 +44,6 @@ export default function CategoriesManager({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [usageCounts, setUsageCounts] = useState<Record<string, number>>({});
 
-  const [showAll, setShowAll] = useState(false);
-  const displayedCategories = showAll ? categories : categories.slice(0, 9);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;

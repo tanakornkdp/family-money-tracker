@@ -15,10 +15,17 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const hasSupabaseConfig = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    if (!hasSupabaseConfig) {
+      setError("ยังไม่ได้ตั้งค่า Supabase ใน .env.local");
+      return;
+    }
     setLoading(true);
 
     const { error: signInError } = await supabase.auth.signInWithPassword({
@@ -44,6 +51,13 @@ export default function LoginPage() {
         <p className="mt-1 text-sm text-slate-500">
           Log in to your Smart Finance AI account
         </p>
+
+        {!hasSupabaseConfig && (
+          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            ต้องตั้งค่า <code>NEXT_PUBLIC_SUPABASE_URL</code> และ{" "}
+            <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> ก่อนเข้าสู่ระบบ
+          </div>
+        )}
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <Input

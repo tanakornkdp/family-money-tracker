@@ -5,6 +5,7 @@ import {
   getTransactions,
 } from "@/services/transactions";
 import { getCardsWithBalance } from "@/services/creditCards";
+import type { TransactionType, PaymentMethod } from "@/types";
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -40,9 +41,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { title, title_id, amount, type, category, date, household_id, payment_method, card_id } = body;
 
-    if (!title || !amount || !type || !category || !date) {
+    const validTypes = new Set(["income", "expense", "transfer"]);
+    const validPaymentMethods = new Set(["cash", "debit_card", "credit_card", "bank_transfer"]);
+    const parsedAmount = typeof amount === "number" ? amount : Number(amount);
+
+    if (
+      typeof title !== "string" || title.trim().length === 0 || title.length > 160 ||
+      !Number.isFinite(parsedAmount) || parsedAmount <= 0 || parsedAmount > 100_000_000 ||
+      typeof type !== "string" || !validTypes.has(type) ||
+      typeof category !== "string" || category.trim().length === 0 || category.length > 100 ||
+      typeof date !== "string" || !/^\d{4}-\d{2}-\d{2}$/.test(date) ||
+      (payment_method !== undefined && !validPaymentMethods.has(payment_method))
+    ) {
       return NextResponse.json(
-        { error: "Missing required fields" },
+        { error: "Invalid transaction fields" },
         { status: 400 }
       );
     }
@@ -52,7 +64,7 @@ export async function POST(request: NextRequest) {
       const cards = await getCardsWithBalance(supabase);
       const card = cards.find((c) => c.id === card_id);
 
-      if (card && card.balance < amount) {
+      if (card && card.balance < parsedAmount) {
         return NextResponse.json(
           { error: `ยอดเงินในบัตรไม่เพียงพอ (คงเหลือ ${card.balance.toLocaleString()} บาท)` },
           { status: 400 }
@@ -63,12 +75,12 @@ export async function POST(request: NextRequest) {
     const transaction = await createTransaction(supabase, userData.user.id, {
       title,
       title_id: title_id ?? null,
-      amount,
-      type,
+      amount: parsedAmount,
+      type: type as TransactionType,
       category,
       date,
       household_id: household_id ?? null,
-      payment_method: payment_method ?? "cash",
+      payment_method: (payment_method ?? "cash") as PaymentMethod,
       card_id: card_id ?? null,
     });
 

@@ -3,6 +3,7 @@ import Topbar from "@/components/layout/Topbar";
 import { createClient } from "@/lib/supabase/server";
 import { getUserSettings } from "@/services/userSettings";
 import PageTransition from "@/components/layout/PageTransition";
+import MobileShell from "@/components/layout/MobileShell";
 
 export default async function DashboardLayout({
   children,
@@ -30,12 +31,13 @@ export default async function DashboardLayout({
 
         <div className="flex">
           <Sidebar />
-          <main className="flex-1 p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-65px)]">
+            <main className="flex-1 p-4 pb-28 sm:p-6 sm:pb-6 lg:p-8 min-h-[calc(100vh-65px)]">
             <div className="max-w-6xl mx-auto">
               <PageTransition>{children}</PageTransition>
             </div>
           </main>
         </div>
+        <MobileShell />
       </div>
     </div>
   );

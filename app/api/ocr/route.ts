@@ -24,6 +24,17 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const { data: receipt, error: receiptError } = await supabase
+      .from("receipts")
+      .select("id, file_path")
+      .eq("id", receiptId)
+      .eq("user_id", userData.user.id)
+      .single();
+
+    if (receiptError || !receipt || receipt.file_path !== filePath) {
+      return NextResponse.json({ error: "Receipt not found" }, { status: 404 });
+    }
+
     const { data: signedUrlData, error: signedUrlError } =
       await supabase.storage.from("receipts").createSignedUrl(filePath, 3600);
 
@@ -53,7 +64,8 @@ export async function POST(request: NextRequest) {
       await supabase
         .from("receipts")
         .update({ status: "failed" })
-        .eq("id", receiptId);
+        .eq("id", receiptId)
+        .eq("user_id", userData.user.id);
     }
 
     return NextResponse.json(

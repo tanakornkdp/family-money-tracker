@@ -22,11 +22,9 @@ import { CreditCard as CreditCardIcon, Banknote, Wallet } from "lucide-react";
 export default function TransactionForm({
   categoryIconMap: externalIconMap,
   onIconChanged,
-  onCategoryRenamed,
 }: {
   categoryIconMap?: Record<string, string>;
   onIconChanged?: (categoryName: string, icon: string) => void;
-  onCategoryRenamed?: (oldName: string, newName: string, icon: string) => void;
 } = {}) {
   const router = useRouter();
   const { t } = useLanguage();
@@ -138,6 +136,8 @@ export default function TransactionForm({
       loadCategories();
       loadCreditCards();
     });
+  // These loaders intentionally run once on mount; each loader handles its own current state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {

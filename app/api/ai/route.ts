@@ -21,6 +21,20 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { messages, locale } = body;
 
+    if (
+      !Array.isArray(messages) ||
+      messages.length > 20 ||
+      messages.some((message) =>
+        !message ||
+        !["user", "assistant"].includes(message.role) ||
+        typeof message.content !== "string" ||
+        message.content.trim().length === 0 ||
+        message.content.length > 2_000
+      )
+    ) {
+      return NextResponse.json({ error: "Invalid messages" }, { status: 400 });
+    }
+
     const today = new Date();
     const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split("T")[0];
     const todayStr = today.toISOString().split("T")[0];
@@ -72,7 +86,10 @@ ${categoryBreakdown.slice(0, 8).map((c) => `- ${c.category}: ${c.amount.toLocale
       model: "llama-3.1-8b-instant",
       messages: [
         { role: "system", content: systemPrompt },
-        ...messages,
+      ...messages.map((message: { role: "user" | "assistant"; content: string }) => ({
+        role: message.role,
+        content: message.content.trim(),
+      })),
       ],
       max_tokens: 600,
       temperature: 0.7,
