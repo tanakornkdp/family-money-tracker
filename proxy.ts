@@ -1,7 +1,14 @@
-import { type NextRequest } from "next/server";
+import { NextResponse, userAgent, type NextRequest } from "next/server";
 import { updateSession } from "@/lib/supabase/middleware";
 
 export async function proxy(request: NextRequest) {
+  if (request.nextUrl.pathname === "/" && ["mobile", "tablet"].includes(userAgent(request).device.type ?? "")) {
+    const destination = request.nextUrl.clone();
+    destination.pathname = "/mobile/dashboard";
+    const response = NextResponse.redirect(destination);
+    response.headers.set("Cache-Control", "private, no-store");
+    return response;
+  }
   return await updateSession(request);
 }
 

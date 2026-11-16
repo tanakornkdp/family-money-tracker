@@ -48,7 +48,8 @@ export default function LoginPage() {
 
       const requestedNext = new URLSearchParams(window.location.search).get("next");
       const standalone = isStandaloneApp();
-      let destination = standalone ? "/mobile/dashboard" : "/dashboard";
+      const mobileViewport = window.matchMedia("(max-width: 767px) and (pointer: coarse)").matches;
+      let destination = standalone || mobileViewport ? "/mobile/dashboard" : "/dashboard";
       if (requestedNext) {
         try {
           const nextUrl = new URL(requestedNext, window.location.origin);

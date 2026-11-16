@@ -1,5 +1,5 @@
-const CACHE_NAME = "family-money-shell-v1";
-const APP_SHELL = ["/", "/manifest.webmanifest"];
+const CACHE_NAME = "family-money-shell-v2";
+const APP_SHELL = ["/icon-192.svg", "/icon-512.svg"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -13,7 +13,7 @@ self.addEventListener("activate", (event) => {
     caches.keys().then((keys) =>
       Promise.all(
         keys
-          .filter((key) => key !== CACHE_NAME)
+          .filter((key) => key.startsWith("family-money-shell-") && key !== CACHE_NAME)
           .map((key) => caches.delete(key))
       )
     )
@@ -23,11 +23,12 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
-  if (request.method !== "GET" || new URL(request.url).origin !== self.location.origin) {
+  const url = new URL(request.url);
+  if (request.method !== "GET" || url.origin !== self.location.origin || !APP_SHELL.includes(url.pathname)) {
     return;
   }
 
   event.respondWith(
-    fetch(request).catch(() => caches.match(request).then((cached) => cached || caches.match("/")))
+    fetch(request).catch(async () => (await caches.match(request)) ?? Response.error())
   );
 });
