@@ -1,14 +1,16 @@
+import { toDateInputValue } from "@/lib/utils/dateHelpers";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import Groq from "groq-sdk";
+import { completeFreeAI, FreeAIUnavailableError } from "@/lib/ai/freeRouter";
+
+export const maxDuration = 120;
 import { getTransactions, calculateKpis, calculateCategoryBreakdown } from "@/services/transactions";
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: "GROQ_API_KEY is not configured." }, { status: 500 });
+  const contentLength = Number(request.headers.get("content-length") ?? 0);
+  if (contentLength > 48_000) {
+    return NextResponse.json({ error: "Request payload is too large" }, { status: 413 });
   }
-  const groq = new Groq({ apiKey });
 
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -21,9 +23,23 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const { messages, locale } = body;
 
+    if (
+      !Array.isArray(messages) ||
+      messages.length > 20 ||
+      messages.some((message) =>
+        !message ||
+        !["user", "assistant"].includes(message.role) ||
+        typeof message.content !== "string" ||
+        message.content.trim().length === 0 ||
+        message.content.length > 2_000
+      )
+    ) {
+      return NextResponse.json({ error: "Invalid messages" }, { status: 400 });
+    }
+
     const today = new Date();
-    const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString().split("T")[0];
-    const todayStr = today.toISOString().split("T")[0];
+    const monthStart = toDateInputValue(new Date(today.getFullYear(), today.getMonth(), 1));
+    const todayStr = toDateInputValue(today);
 
     const transactions = await getTransactions(supabase, {
       dateFrom: monthStart,
@@ -68,23 +84,22 @@ ${categoryBreakdown.slice(0, 8).map((c) => `- ${c.category}: ${c.amount.toLocale
 - ให้คำแนะนำที่ปฏิบัติได้จริง
 - ถ้าถามเรื่องที่ไม่เกี่ยวกับการเงิน ให้บอกว่าช่วยเฉพาะด้านการเงิน`;
 
-    const response = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+    const response = await completeFreeAI({
       messages: [
         { role: "system", content: systemPrompt },
-        ...messages,
+      ...messages.map((message: { role: "user" | "assistant"; content: string }) => ({
+        role: message.role,
+        content: message.content.trim(),
+      })),
       ],
-      max_tokens: 600,
-      temperature: 0.7,
     });
 
-    const reply = response.choices[0].message.content ?? "ขออภัย ไม่สามารถตอบได้ในขณะนี้";
-    return NextResponse.json({ message: reply });
+    const reply = response.text ?? "ขออภัย ไม่สามารถตอบได้ในขณะนี้";
+    return NextResponse.json({ message: reply, provider: response.provider, model: response.model });
   } catch (err) {
-    console.error("AI route error:", err);
     return NextResponse.json(
-      { error: (err as Error).message },
-      { status: 500 }
+      { error: err instanceof FreeAIUnavailableError ? err.message : "AI service unavailable", code: err instanceof FreeAIUnavailableError ? "FREE_AI_UNAVAILABLE" : "AI_ERROR" },
+      { status: err instanceof FreeAIUnavailableError ? 503 : 500 }
     );
   }
 }

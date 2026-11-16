@@ -4,6 +4,8 @@ import {
   deleteTransaction,
   updateTransaction,
 } from "@/services/transactions";
+import { getCardsWithBalance } from "@/services/creditCards";
+import { validateTransactionInput } from "@/lib/validation/transactionInput";
 
 export async function PATCH(
   request: NextRequest,
@@ -18,8 +20,43 @@ export async function PATCH(
   }
 
   try {
-    const body = await request.json();
-    const transaction = await updateTransaction(supabase, id, body);
+    const body: unknown = await request.json().catch(() => null);
+    const validation = validateTransactionInput(body, true);
+    if (!validation.data) {
+      return NextResponse.json({ error: validation.error }, { status: 400 });
+    }
+
+    const { data: current, error: currentError } = await supabase
+      .from("transactions")
+      .select("title, title_id, amount, type, category, date, household_id, payment_method, card_id")
+      .eq("id", id)
+      .single();
+    if (currentError || !current) {
+      return NextResponse.json({ error: "Transaction not found" }, { status: 404 });
+    }
+
+    const completeValidation = validateTransactionInput(
+      { ...current, ...validation.data },
+      false,
+    );
+    if (!completeValidation.data) {
+      return NextResponse.json({ error: completeValidation.error }, { status: 400 });
+    }
+
+    const next = completeValidation.data;
+    if ((next.payment_method === "debit_card" || next.payment_method === "credit_card") && next.card_id) {
+      const cards = await getCardsWithBalance(supabase, id);
+      const card = cards.find((candidate) => candidate.id === next.card_id);
+      if (!card) return NextResponse.json({ error: "บัตรที่เลือกไม่ถูกต้อง" }, { status: 400 });
+      if (next.type === "expense" && next.payment_method === "debit_card" && next.category !== "เติมเงินวอลเล็ต" && card.balance < next.amount!) {
+        return NextResponse.json({ error: "ยอดเงินในบัตรเดบิตไม่เพียงพอ" }, { status: 400 });
+      }
+      if (next.type === "expense" && next.payment_method === "credit_card" && card.available < next.amount!) {
+        return NextResponse.json({ error: "วงเงินบัตรเครดิตไม่เพียงพอ" }, { status: 400 });
+      }
+    }
+
+    const transaction = await updateTransaction(supabase, id, validation.data);
     return NextResponse.json({ transaction });
   } catch (err) {
     return NextResponse.json(

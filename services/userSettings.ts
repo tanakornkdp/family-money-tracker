@@ -18,11 +18,27 @@ export async function getUserSettings(
 export async function upsertUserSettings(
   supabase: SupabaseClient,
   userId: string,
-  updates: Partial<Pick<UserSettings, "currency" | "language" | "theme" | "full_name" | "avatar_url">>
+  updates: Partial<Pick<UserSettings, "currency" | "language" | "theme" | "full_name" | "avatar_url" | "lock_timeout_minutes">>
 ): Promise<UserSettings> {
+  const { data: existing, error: lookupError } = await supabase
+    .from("user_settings")
+    .select("user_id")
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  if (lookupError) throw new Error(lookupError.message);
+
+  const defaults = existing ? {} : {
+    currency: "THB",
+    language: "th" as const,
+    theme: "system" as const,
+    full_name: null,
+    avatar_url: null,
+    lock_timeout_minutes: 5,
+  };
   const { data, error } = await supabase
     .from("user_settings")
-    .upsert({ user_id: userId, ...updates, updated_at: new Date().toISOString() })
+    .upsert({ user_id: userId, ...defaults, ...updates, updated_at: new Date().toISOString() })
     .select()
     .single();
 

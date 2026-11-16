@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
-import { createGoal, deleteGoal, addContribution, updateGoalStatus } from "@/services/goals";
+import { createGoal, deleteGoal, addContribution } from "@/services/goals";
+import type { GoalContributionSummary } from "@/services/goals";
 import { FinancialGoal, GoalType, Household } from "@/types";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import Card from "@/components/ui/Card";
@@ -18,15 +19,17 @@ export default function GoalsManager({
   households,
   userId,
   currency,
+  contributionSummaries,
 }: {
   initialGoals: FinancialGoal[];
   households: Household[];
   userId: string;
   currency: string;
+  contributionSummaries: Record<string, GoalContributionSummary>;
 }) {
   const router = useRouter();
   const supabase = createClient();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   const [goals, setGoals] = useState<FinancialGoal[]>(initialGoals);
   const [error, setError] = useState<string | null>(null);
@@ -211,6 +214,9 @@ export default function GoalsManager({
           {goals.map((g) => {
             const percent = Math.min(100, (g.current_amount / g.target_amount) * 100);
             const daysLeft = getDaysLeft(g.target_date);
+            const monthsLeft = daysLeft === null ? null : Math.max(1, Math.ceil(daysLeft / 30));
+            const monthlyTarget = monthsLeft === null ? null : Math.max(0, (Number(g.target_amount) - Number(g.current_amount)) / monthsLeft);
+            const scheduleMonths = monthsLeft ?? 0;
 
             return (
               <Card key={g.id}>
@@ -258,6 +264,13 @@ export default function GoalsManager({
                     />
                   </div>
                 </div>
+                {monthlyTarget !== null && <div className="mb-4 rounded-xl bg-emerald-50 px-3 py-2 text-xs text-emerald-900 dark:bg-emerald-950/30 dark:text-emerald-200"><div className="flex items-center justify-between"><span>{locale === "th" ? "แผนออมต่อเดือน" : "Monthly saving plan"}</span><strong className="tabular-nums">{formatCurrency(monthlyTarget, currency)}</strong></div><div className="mt-2 grid grid-cols-4 gap-1" aria-label={locale === "th" ? "ตารางออมรายเดือน" : "Monthly schedule"}>{Array.from({ length: Math.min(12, scheduleMonths) }, (_, index) => <span key={index} className={`h-2 rounded-full ${index < Math.round(percent / 100 * Math.min(12, scheduleMonths)) ? "bg-emerald-600" : "bg-emerald-200 dark:bg-emerald-900"}`} />)}</div></div>}
+
+                {g.household_id && <section className="mb-4 border-t border-slate-100 pt-3 dark:border-slate-800">
+                  <div className="flex items-center justify-between text-sm"><span className="text-slate-500">{locale === "th" ? "ยอดที่สมาชิกช่วยกัน" : "Member contributions"}</span><strong className="tabular-nums text-slate-900 dark:text-slate-100">{formatCurrency(contributionSummaries[g.id]?.totalAmount ?? 0, currency)}</strong></div>
+                  {(contributionSummaries[g.id]?.members ?? []).map((member) => <div key={member.userId} className="mt-2 flex items-center justify-between text-xs text-slate-600 dark:text-slate-300"><span>{member.name}</span><span className="tabular-nums">{formatCurrency(member.amount, currency)}</span></div>)}
+                  {!(contributionSummaries[g.id]?.members.length) && <p className="mt-2 text-xs text-slate-500">{locale === "th" ? "ยังไม่มีสมาชิกเพิ่มเงินเข้ากองนี้" : "No member contributions yet."}</p>}
+                </section>}
 
                 {daysLeft !== null && (
                   <p

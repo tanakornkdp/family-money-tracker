@@ -47,7 +47,7 @@ export default async function ReceiptsPage() {
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
             {t.receipts.history}
           </h2>
-          <ReceiptList receipts={receipts} currency={currency} />
+          <ReceiptList receipts={receipts} currency={currency} userId={userData.user?.id ?? ""} />
         </div>
       </div>
     </div>

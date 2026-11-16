@@ -1,3 +1,4 @@
+import { toDateInputValue } from "@/lib/utils/dateHelpers";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { BudgetPlan, DailyBudgetStatus, Transaction } from "@/types";
 
@@ -7,6 +8,17 @@ export interface BudgetPlanInput {
   start_date: string;
   end_date: string;
   household_id?: string | null;
+  category?: string | null;
+  travel_trip_id?: string | null;
+  alert_threshold?: number;
+  alert_thresholds?: number[];
+}
+
+export function getReachedBudgetAlertLevels(percentUsed: number, configuredLevels: number[] | null | undefined): number[] {
+  const levels = configuredLevels ?? [80];
+  return [...new Set(levels)]
+    .filter((level) => Number.isInteger(level) && level > 0 && level < 100 && percentUsed >= level)
+    .sort((a, b) => a - b);
 }
 
 export async function getBudgetPlans(supabase: SupabaseClient): Promise<BudgetPlan[]> {
@@ -56,90 +68,60 @@ export async function deleteBudgetPlan(supabase: SupabaseClient, planId: string)
   if (error) throw new Error(error.message);
 }
 
-function parseDateUtc(dateStr: string): Date {
-  const matches = dateStr.match(/^(\d{4})-(\d{2})-(\d{2})/);
-  if (!matches) {
-    const d = new Date(dateStr);
-    return isNaN(d.getTime()) ? new Date() : d;
-  }
-  return new Date(Date.UTC(Number(matches[1]), Number(matches[2]) - 1, Number(matches[3]), 12, 0, 0, 0));
+export async function updateBudgetAlertThresholds(
+  supabase: SupabaseClient,
+  planId: string,
+  thresholds: number[],
+): Promise<BudgetPlan> {
+  const cleaned = [...new Set(thresholds)].filter((value) => Number.isInteger(value) && value > 0 && value < 100).sort((a, b) => a - b);
+  if (cleaned.length > 10) throw new Error("เลือกได้ไม่เกิน 10 ระดับ");
+  const { data, error } = await supabase.from("budget_plans").update({ alert_thresholds: cleaned }).eq("id", planId).select().single();
+  if (error) throw new Error(error.message);
+  return data as BudgetPlan;
 }
 
 function getDaysBetween(startDate: string, endDate: string): number {
-  const start = parseDateUtc(startDate);
-  const end = parseDateUtc(endDate);
+  const start = new Date(startDate);
+  const end = new Date(endDate);
   const diffMs = end.getTime() - start.getTime();
-  return Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
-}
-
-function getDayIndex(startDate: string, targetDate: string): number {
-  const start = parseDateUtc(startDate);
-  const target = parseDateUtc(targetDate);
-  const diffMs = target.getTime() - start.getTime();
-  return Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
+  return Math.floor(diffMs / (1000 * 60 * 60 * 24)) + 1;
 }
 
 /**
  * Calculates daily budget status for every day in the plan range,
  * using cumulative carry-over logic: unused budget rolls into future days.
- * To keep future days realistic, they do not accumulate future allowances
- * until those days are reached.
  */
 export function calculateDailyBudgetStatuses(
   plan: BudgetPlan,
-  transactions: Transaction[],
-  upcomingRecurring: { date: string; amount: number }[] = []
+  transactions: Transaction[]
 ): Map<string, DailyBudgetStatus> {
-  const pStart = plan.start_date.substring(0, 10);
-  const pEnd = plan.end_date.substring(0, 10);
-  const totalDays = getDaysBetween(pStart, pEnd);
+  const totalDays = getDaysBetween(plan.start_date, plan.end_date);
   const dailyAllowance = plan.total_amount / totalDays;
 
   const expensesByDate = new Map<string, number>();
   for (const t of transactions) {
     if (t.type !== "expense") continue;
-    const txDate = t.date.substring(0, 10);
-    if (txDate < pStart || txDate > pEnd) continue;
-    expensesByDate.set(txDate, (expensesByDate.get(txDate) ?? 0) + Number(t.amount));
-  }
-
-  const projectedByDate = new Map<string, number>();
-  for (const rec of upcomingRecurring) {
-    const recDate = rec.date.substring(0, 10);
-    if (recDate < pStart || recDate > pEnd) continue;
-    projectedByDate.set(recDate, (projectedByDate.get(recDate) ?? 0) + rec.amount);
+    if (t.date < plan.start_date || t.date > plan.end_date) continue;
+    if (plan.category && t.category !== plan.category) continue;
+    if (plan.travel_trip_id && t.travel_trip_id !== plan.travel_trip_id) continue;
+    expensesByDate.set(t.date, (expensesByDate.get(t.date) ?? 0) + Number(t.amount));
   }
 
   const statuses = new Map<string, DailyBudgetStatus>();
   let cumulativeSpent = 0;
 
-  // Get local date string YYYY-MM-DD
-  const today = new Date();
-  const offset = today.getTimezoneOffset();
-  const localToday = new Date(today.getTime() - (offset * 60 * 1000));
-  const todayStr = localToday.toISOString().split("T")[0];
-
-  const start = parseDateUtc(pStart);
+  const start = new Date(plan.start_date);
   for (let i = 0; i < totalDays; i++) {
-    const current = new Date(start.getTime() + i * 24 * 60 * 60 * 1000);
-    const dateStr = current.toISOString().split("T")[0];
+    const current = new Date(start);
+    current.setDate(start.getDate() + i);
+    const dateStr = toDateInputValue(current);
 
-    const actualSpent = expensesByDate.get(dateStr) ?? 0;
-    const projectedSpent = dateStr > todayStr ? (projectedByDate.get(dateStr) ?? 0) : 0;
-    const spentAmount = actualSpent + projectedSpent;
+    const spentAmount = expensesByDate.get(dateStr) ?? 0;
     cumulativeSpent += spentAmount;
 
     const dayIndex = i + 1;
     const cumulativeBudget = dailyAllowance * dayIndex;
-
-    let remaining = 0;
-    if (dateStr > todayStr) {
-      // Future day: only shows its own daily allowance minus any spent amount on that day
-      remaining = dailyAllowance - spentAmount;
-    } else {
-      // Past or Today: shows cumulative budget minus cumulative spent up to this day (unlocked carry-over)
-      remaining = cumulativeBudget - cumulativeSpent;
-    }
+    const remaining = cumulativeBudget - cumulativeSpent;
 
     statuses.set(dateStr, {
       date: dateStr,

@@ -1,11 +1,13 @@
 "use client";
 
+import { toDateInputValue } from "@/lib/utils/dateHelpers";
+
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import { TransactionType, Household, TransactionTitle, FinancialGoal, Category } from "@/types";
+import { TransactionType, Household, TransactionTitle, FinancialGoal, Category, TravelTrip } from "@/types";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { getTitles, createTitle } from "@/services/transactionTitles";
 import { getUserHouseholds } from "@/services/households";
@@ -13,20 +15,20 @@ import { getGoals } from "@/services/goals";
 import { getCategories, getCategoryIconMap, createCategory, renameCategory } from "@/services/categories";
 import EditTitleModal from "./EditTitleModal";
 import { Pencil, ChevronDown } from "lucide-react";
-import { TITLE_ICONS } from "@/lib/constants/titleIcons";
-import Modal from "@/components/ui/Modal";
+import CategoryEditorDialog from "@/components/categories/CategoryEditorDialog";
 import { getCreditCards } from "@/services/creditCards";
 import { CreditCard, PaymentMethod } from "@/types";
 import { CreditCard as CreditCardIcon, Banknote, Wallet } from "lucide-react";
+import { formatCurrency } from "@/lib/utils/formatCurrency";
 
 export default function TransactionForm({
   categoryIconMap: externalIconMap,
   onIconChanged,
-  onCategoryRenamed,
+  onSaved,
 }: {
   categoryIconMap?: Record<string, string>;
   onIconChanged?: (categoryName: string, icon: string) => void;
-  onCategoryRenamed?: (oldName: string, newName: string, icon: string) => void;
+  onSaved?: () => void;
 } = {}) {
   const router = useRouter();
   const { t } = useLanguage();
@@ -40,7 +42,11 @@ export default function TransactionForm({
 
   const [selectedTitleId, setSelectedTitleId] = useState<string>("");
   const [amount, setAmount] = useState("");
-  const [date, setDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(() => toDateInputValue());
+  const [activeTrips, setActiveTrips] = useState<TravelTrip[]>([]);
+  const [selectedTravelTripId, setSelectedTravelTripId] = useState("");
+  const [travelRate, setTravelRate] = useState("");
+  const [travelRateDate, setTravelRateDate] = useState("");
   const [householdId, setHouseholdId] = useState<string>("");
 
   const [showNewTitle, setShowNewTitle] = useState(false);
@@ -51,6 +57,7 @@ export default function TransactionForm({
   const [savingTitle, setSavingTitle] = useState(false);
 
   const [error, setError] = useState<string | null>(null);
+  const [duplicateWarning, setDuplicateWarning] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -138,7 +145,52 @@ export default function TransactionForm({
       loadCategories();
       loadCreditCards();
     });
+  // These loaders intentionally run once on mount; each loader handles its own current state.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/travel/active", { cache: "no-store" })
+      .then(async (response) => response.ok ? response.json() : null)
+      .then((data: { trips?: TravelTrip[] } | null) => {
+        if (!cancelled && data?.trips) {
+          setActiveTrips(data.trips);
+          if (data.trips.length === 1) setSelectedTravelTripId(data.trips[0].id);
+        }
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
+
+  const selectedTravelTrip = activeTrips.find((trip) => trip.id === selectedTravelTripId);
+
+  useEffect(() => {
+    if (!selectedTravelTrip) return;
+    let cancelled = false;
+    if (selectedTravelTrip.currency === "THB") return;
+    fetch(`/api/travel/rate?currency=${selectedTravelTrip.currency}&date=${date}`, { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+        return data as { rate: number; date: string };
+      })
+      .then((data) => {
+        if (!cancelled) {
+          setTravelRate(String(data.rate));
+          setTravelRateDate(data.date);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setTravelRate(String(selectedTravelTrip.exchange_rate_to_thb));
+          setTravelRateDate("");
+        }
+      });
+    return () => { cancelled = true; };
+  }, [selectedTravelTrip, date]);
+
+  const effectiveTravelRate = selectedTravelTrip?.currency === "THB" ? "1" : travelRate;
 
   useEffect(() => {
     if (externalIconMap) {
@@ -280,20 +332,25 @@ export default function TransactionForm({
     }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const saveTransaction = async (allowPossibleDuplicate = false) => {
     if (!selectedTitle) {
       setError(t.transactions.selectTitle);
       return;
     }
+    if (activeTrips.length > 1 && !selectedTravelTrip) {
+      setError("เลือกทริปที่ต้องการผูกกับรายการนี้ก่อน");
+      return;
+    }
+    if (selectedTravelTrip && (!Number.isFinite(Number(effectiveTravelRate)) || Number(effectiveTravelRate) <= 0)) {
+      setError("กรุณารออัตราแลกเปลี่ยน หรือกรอกอัตราเอง");
+      return;
+    }
 
     setError(null);
+    setDuplicateWarning(null);
     setLoading(true);
 
-    const res = await fetch("/api/transactions", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
+    const payload = {
         title: selectedTitle.name,
         title_id: selectedTitle.id,
         amount: parseFloat(amount),
@@ -305,19 +362,47 @@ export default function TransactionForm({
         card_id: (paymentMethod === "credit_card" || paymentMethod === "debit_card") 
           ? (selectedCardId || null) 
           : null,
-      }),
-    });
+        ...(selectedTravelTrip ? {
+          travel_trip_id: selectedTravelTrip.id,
+          travel_original_amount: parseFloat(amount),
+          travel_original_currency: selectedTravelTrip.currency,
+          travel_exchange_rate_to_thb: Number(effectiveTravelRate),
+          travel_exchange_rate_date: travelRateDate || date,
+        } : {}),
+      };
 
-    setLoading(false);
-
-    if (!res.ok) {
-      const data = await res.json();
-      setError(data.error ?? "Failed to add transaction");
-      return;
+    try {
+      if (!allowPossibleDuplicate) {
+        const { data: authData } = await supabase.auth.getUser();
+        if (!authData.user) throw new Error("กรุณาเข้าสู่ระบบใหม่ก่อนบันทึกรายการ");
+        let duplicateQuery = supabase.from("transactions").select("id").eq("title", selectedTitle.name)
+          .eq("amount", Number(amount)).eq("type", selectedTitle.type).eq("category", selectedTitle.category).eq("date", date).limit(3);
+        duplicateQuery = householdId
+          ? duplicateQuery.eq("household_id", householdId)
+          : duplicateQuery.eq("user_id", authData.user.id).is("household_id", null);
+        const { data: possibleDuplicates, error: duplicateError } = await duplicateQuery;
+        if (duplicateError) throw new Error("ตรวจรายการซ้ำไม่สำเร็จ กรุณาลองอีกครั้ง หรือเลือกบันทึกต่อ");
+        if (possibleDuplicates?.length) {
+          setDuplicateWarning(`พบรายการชื่อเดียวกัน ยอด ${Number(amount).toLocaleString()} วันที่ ${date} อยู่แล้ว ต้องการตรวจดูหรือบันทึกซ้ำหรือไม่?`);
+          return;
+        }
+      }
+      const res = await fetch("/api/transactions", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload) });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error ?? "Failed to add transaction");
+      setAmount("");
+      router.refresh();
+      onSaved?.();
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setLoading(false);
     }
+  };
 
-    setAmount("");
-    router.refresh();
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    void saveTransaction();
   };
 
   return (
@@ -639,7 +724,7 @@ export default function TransactionForm({
                     )
                     .map((card) => (
                       <option key={card.id} value={card.id}>
-                        {card.name.includes("|") ? card.name.split("|")[0] + " " + card.name.split("|")[1] : "💳 " + card.name}
+                        {card.name}
                       </option>
                     ))}
                 </select>
@@ -657,7 +742,7 @@ export default function TransactionForm({
       )}
 
       <Input
-        label={t.transactions.formAmount}
+        label={selectedTravelTrip ? `จำนวนเงิน (${selectedTravelTrip.currency})` : t.transactions.formAmount}
         type="number"
         step="0.01"
         min="0"
@@ -665,6 +750,45 @@ export default function TransactionForm({
         onChange={(e) => setAmount(e.target.value)}
         required
       />
+
+      {activeTrips.length > 0 && (
+        <section className="space-y-3 rounded-xl border border-emerald-200 bg-emerald-50 p-3 dark:border-emerald-900 dark:bg-emerald-950/30">
+          <div>
+            <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">รายการนี้อยู่ในทริป</p>
+            <p className="mt-1 text-xs text-emerald-800/80 dark:text-emerald-300/80">บันทึกยอดเงินบาทและอัตราอ้างอิงไว้กับรายการ เพื่อสรุปย้อนหลังได้</p>
+          </div>
+          {activeTrips.length > 1 && (
+            <select
+              aria-label="เลือกทริป"
+              value={selectedTravelTripId}
+              onChange={(event) => setSelectedTravelTripId(event.target.value)}
+              className="w-full rounded-xl border border-emerald-200 bg-white px-3 py-3 text-base dark:border-emerald-800 dark:bg-slate-900"
+            >
+              <option value="">เลือกทริป</option>
+              {activeTrips.map((trip) => <option key={trip.id} value={trip.id}>{trip.name} · {trip.destination}</option>)}
+            </select>
+          )}
+          {selectedTravelTrip && selectedTravelTrip.currency !== "THB" && (
+            <div className="space-y-2">
+              <label className="block text-xs font-medium text-emerald-900 dark:text-emerald-200" htmlFor="travel-fx-rate">อัตราอ้างอิง: 1 {selectedTravelTrip.currency} เป็นกี่บาท</label>
+              <input
+                id="travel-fx-rate"
+                type="number"
+                min="0.000001"
+                step="0.000001"
+                inputMode="decimal"
+                value={effectiveTravelRate}
+                onChange={(event) => setTravelRate(event.target.value)}
+                className="min-h-11 w-full rounded-xl border border-emerald-200 bg-white px-3 text-base dark:border-emerald-800 dark:bg-slate-900"
+              />
+              <p className="text-xs text-emerald-800/80 dark:text-emerald-300/80">
+                {travelRateDate ? `อัตราอ้างอิง ณ ${travelRateDate}` : "ใช้อัตราที่กำหนดไว้ในทริป · แก้ไขได้"}
+                {Number(amount) > 0 && Number(effectiveTravelRate) > 0 ? ` · ประมาณ ${formatCurrency(Number(amount) * Number(effectiveTravelRate), "THB")}` : ""}
+              </p>
+            </div>
+          )}
+        </section>
+      )}
 
       {households.length > 0 && (
         <div className="flex flex-col gap-1.5">
@@ -694,7 +818,8 @@ export default function TransactionForm({
         required
       />
 
-      {error && <p className="text-sm text-red-600">{error}</p>}
+      {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+      {duplicateWarning && <div role="alert" className="space-y-2 rounded-xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200"><p>{duplicateWarning}</p><div className="flex flex-wrap gap-2"><button type="button" className="min-h-10 rounded-lg bg-amber-700 px-3 font-semibold text-white" disabled={loading} onClick={() => void saveTransaction(true)}>บันทึกซ้ำต่อ</button><button type="button" className="min-h-10 rounded-lg border border-amber-400 px-3 font-medium" disabled={loading} onClick={() => setDuplicateWarning(null)}>กลับไปตรวจ</button></div></div>}
 
       <Button type="submit" className="w-full" disabled={loading || !selectedTitle}>
         {loading ? t.transactions.adding : t.transactions.add}
@@ -710,108 +835,12 @@ export default function TransactionForm({
         />
       )}
 
-      {showCategoryModal && (
-        <Modal
-          open={showCategoryModal}
-          onClose={() => setShowCategoryModal(false)}
-          title={t.categories.createCategory}
-        >
-          <div className="space-y-4">
-            <Input
-              label={t.categories.categoryName}
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-            />
-
-            <div>
-              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">Icon</p>
-              <div className="grid grid-cols-8 gap-2">
-                {TITLE_ICONS.map((icon) => (
-                  <button
-                    key={icon}
-                    type="button"
-                    onClick={() => setNewCategoryIcon(icon)}
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition ${
-                      newCategoryIcon === icon
-                        ? "bg-primary-600 ring-2 ring-primary-600 ring-offset-1 ring-offset-white dark:ring-offset-slate-900"
-                        : "bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
-                    }`}
-                  >
-                    {icon}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {error && <p className="text-sm text-red-600">{error}</p>}
-
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                onClick={handleCreateCategory}
-                disabled={savingCategory || !newCategoryName.trim()}
-              >
-                {t.categories.create}
-              </Button>
-              <Button type="button" variant="secondary" onClick={() => setShowCategoryModal(false)}>
-                {t.categories.cancel}
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
-      {showEditCategoryModal && (
-        <Modal
-          open={showEditCategoryModal}
-          onClose={() => setShowEditCategoryModal(false)}
-          title={t.categories.edit}
-        >
-          <div className="space-y-4">
-            <Input
-              label={t.categories.categoryName}
-              value={editCategoryName}
-              onChange={(e) => setEditCategoryName(e.target.value)}
-            />
-
-            <div>
-              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">Icon</p>
-              <div className="grid grid-cols-8 gap-2">
-                {TITLE_ICONS.map((icon) => (
-                  <button
-                    key={icon}
-                    type="button"
-                    onClick={() => setEditCategoryIcon(icon)}
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition ${
-                      editCategoryIcon === icon
-                        ? "bg-primary-600 ring-2 ring-primary-600 ring-offset-1 ring-offset-white dark:ring-offset-slate-900"
-                        : "bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
-                    }`}
-                  >
-                    {icon}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                onClick={handleSaveEditCategory}
-                disabled={savingEditCategory || !editCategoryName.trim()}
-              >
-                {t.categories.saveChanges}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setShowEditCategoryModal(false)}
-              >
-                {t.categories.cancel}
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      {showCategoryModal && <CategoryEditorDialog name={newCategoryName} icon={newCategoryIcon} busy={savingCategory} error={error}
+        onName={setNewCategoryName} onIcon={setNewCategoryIcon} onSave={() => void handleCreateCategory()}
+        onClose={() => setShowCategoryModal(false)} />}
+      {showEditCategoryModal && <CategoryEditorDialog editing name={editCategoryName} icon={editCategoryIcon} busy={savingEditCategory} error={error}
+        onName={setEditCategoryName} onIcon={setEditCategoryIcon} onSave={() => void handleSaveEditCategory()}
+        onClose={() => setShowEditCategoryModal(false)} />}
     </form>
   );
 }

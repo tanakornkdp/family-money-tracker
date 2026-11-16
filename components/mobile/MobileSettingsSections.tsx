@@ -1,0 +1,12 @@
+"use client";
+import { useState } from "react";
+import { ChevronDown, Tags, UserRound } from "lucide-react";
+import SettingsForm from "@/components/settings/SettingsForm";
+import CategoriesManager from "@/components/categories/CategoriesManager";
+import { Category, UserSettings } from "@/types";
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
+export default function MobileSettingsSections({settings,categories,userEmail,userId}:{settings:UserSettings|null;categories:Category[];userEmail:string;userId:string}) {
+ const [open,setOpen]=useState<"profile"|"categories"|null>(null);const toggle=(section:"profile"|"categories")=>setOpen(current=>current===section?null:section);
+ const { t } = useLanguage();
+ return <div className="space-y-3"><section className="overflow-hidden rounded-3xl bg-mobile-surface shadow-sm"><button type="button" aria-expanded={open==="profile"} onClick={()=>toggle("profile")} className="flex min-h-[76px] w-full items-center gap-3 px-4 py-4 text-left"><span className="rounded-xl bg-indigo-50 p-2.5 text-indigo-600"><UserRound size={20}/></span><span className="min-w-0 flex-1"><span className="block font-bold">{t.settings.mobileAccount}</span><span className="mt-1 block text-xs text-slate-500">{t.settings.mobileAccountDescription}</span></span><ChevronDown size={19} className={`text-slate-400 transition-transform ${open==="profile"?"rotate-180":""}`}/></button>{open==="profile"&&<div className="border-t border-slate-100 p-3 dark:border-slate-800"><SettingsForm initialSettings={settings} userEmail={userEmail} userId={userId}/></div>}</section><section className="overflow-hidden rounded-3xl bg-mobile-surface shadow-sm"><button type="button" aria-expanded={open==="categories"} onClick={()=>toggle("categories")} className="flex min-h-[76px] w-full items-center gap-3 px-4 py-4 text-left"><span className="rounded-xl bg-emerald-50 p-2.5 text-emerald-700"><Tags size={20}/></span><span className="min-w-0 flex-1"><span className="block font-bold">{t.nav.categories}</span><span className="mt-1 block text-xs text-slate-500">{t.settings.mobileCategoriesDescription}</span></span><ChevronDown size={19} className={`text-slate-400 transition-transform ${open==="categories"?"rotate-180":""}`}/></button>{open==="categories"&&<div className="border-t border-slate-100 p-3 dark:border-slate-800"><CategoriesManager initialCategories={categories} userId={userId}/></div>}</section></div>;
+}

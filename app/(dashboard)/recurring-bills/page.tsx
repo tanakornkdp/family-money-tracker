@@ -4,7 +4,7 @@ import { getCategories } from "@/services/categories";
 import { getCreditCards } from "@/services/creditCards";
 import { getUserHouseholds } from "@/services/households";
 import { getUserSettings } from "@/services/userSettings";
-import { translations, Locale } from "@/lib/i18n/translations";
+import { Locale } from "@/lib/i18n/translations";
 import { cookies } from "next/headers";
 import RecurringBillsManager from "@/components/recurring-bills/RecurringBillsManager";
 
@@ -18,7 +18,6 @@ export default async function RecurringBillsPage() {
   const user = await requireUser();
   const supabase = await createClient();
   const locale = await getServerLocale();
-  const t = translations[locale];
 
   const categories = await getCategories(supabase);
   const creditCards = await getCreditCards(supabase);
@@ -27,8 +26,8 @@ export default async function RecurringBillsPage() {
   const currency = settings?.currency ?? "THB";
 
   return (
-    <div className="space-y-8">
-      <div>
+    <div className="flex flex-col h-full min-h-0 space-y-6">
+      <div className="shrink-0">
         <h1 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">
           {locale === "th" ? "รายการประจำ & บริการรายเดือน" : "Recurring Bills & Subscriptions"}
         </h1>
@@ -39,14 +38,16 @@ export default async function RecurringBillsPage() {
         </p>
       </div>
 
-      <RecurringBillsManager
-        userId={user.id}
-        initialCategories={categories}
-        initialCreditCards={creditCards}
-        initialHouseholds={households}
-        currency={currency}
-        locale={locale}
-      />
+      <div className="flex-1 min-h-0 overflow-y-auto pr-1">
+        <RecurringBillsManager
+          userId={user.id}
+          initialCategories={categories}
+          initialCreditCards={creditCards}
+          initialHouseholds={households}
+          currency={currency}
+          locale={locale}
+        />
+      </div>
     </div>
   );
 }

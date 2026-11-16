@@ -12,6 +12,14 @@ export interface TransactionInput {
   household_id?: string | null;
   payment_method?: PaymentMethod;
   card_id?: string | null;
+  travel_trip_id?: string | null;
+  travel_amount_thb?: number | null;
+  travel_original_amount?: number | null;
+  travel_original_currency?: string | null;
+  travel_exchange_rate_to_thb?: number | null;
+  travel_exchange_rate_date?: string | null;
+  recurring_bill_id?: string | null;
+  recurring_occurrence_date?: string | null;
 }
 
 export async function getTransactions(
@@ -19,6 +27,7 @@ export async function getTransactions(
   options?: {
     limit?: number;
     householdId?: string | null;
+    personalOnly?: boolean;
     userIds?: string[];
     dateFrom?: string;
     dateTo?: string;
@@ -27,10 +36,14 @@ export async function getTransactions(
   let query = supabase
     .from("transactions")
     .select("*")
-    .order("date", { ascending: false });
+    .order("date", { ascending: false })
+    .order("created_at", { ascending: false })
+    .order("id", { ascending: false });
 
   if (options?.householdId) {
     query = query.eq("household_id", options.householdId);
+  } else if (options?.personalOnly) {
+    query = query.is("household_id", null);
   }
 
   if (options?.userIds && options.userIds.length > 0) {
@@ -241,8 +254,8 @@ export function calculateStackedBarData(
 
 export function calculateCashBalance(transactions: Transaction[]): number {
   return transactions.reduce((sum, t) => {
-    // ถ้าจ่ายผ่านบัตรเดบิต ไม่กระทบเงินสด
-    if (t.payment_method === "debit_card") return sum;
+    // Card and bank transfers have their own balance buckets.
+    if ((t.payment_method ?? "cash") !== "cash") return sum;
     
     // เติมวอลเล็ตด้วยเงินสด = เงินสดไหลออก (หัก)
     if (t.category === "เติมเงินวอลเล็ต") {

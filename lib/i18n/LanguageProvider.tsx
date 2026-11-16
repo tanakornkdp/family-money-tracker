@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useMemo, useState, ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { translations, Locale, TranslationKeys } from "./translations";
 
@@ -22,16 +22,20 @@ export function LanguageProvider({
   const [locale, setLocaleState] = useState<Locale>(initialLocale);
   const router = useRouter();
 
-  function setLocale(newLocale: Locale) {
+  const setLocale = useCallback((newLocale: Locale) => {
+    if (newLocale === locale) return;
     setLocaleState(newLocale);
     if (typeof document !== "undefined") {
-      document.cookie = `app_locale=${newLocale}; path=/; max-age=31536000`;
+      document.cookie = `app_locale=${newLocale}; path=/; max-age=31536000; samesite=lax`;
+      document.documentElement.lang = newLocale;
     }
     router.refresh();
-  }
+  }, [locale, router]);
+
+  const value = useMemo(() => ({ locale, setLocale, t: translations[locale] as TranslationKeys }), [locale, setLocale]);
 
   return (
-    <LanguageContext.Provider value={{ locale, setLocale, t: translations[locale] as TranslationKeys }}>
+    <LanguageContext.Provider value={value}>
       {children}
     </LanguageContext.Provider>
   );

@@ -1,0 +1,6 @@
+/tests/
+/playwright*.config.*
+/playwright-report/
+/test-results/
+/playwright/.auth/
+/.next/

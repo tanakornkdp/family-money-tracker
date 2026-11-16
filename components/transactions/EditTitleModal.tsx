@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { TransactionTitle, TransactionType, Category, FinancialGoal } from "@/types";
@@ -8,7 +8,7 @@ import { updateTitle, deleteTitle } from "@/services/transactionTitles";
 import { getCategories, getCategoryIconMap, createCategory, renameCategory } from "@/services/categories";
 import { getGoals } from "@/services/goals";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
-import { TITLE_ICONS } from "@/lib/constants/titleIcons";
+import CategoryEditorDialog from "@/components/categories/CategoryEditorDialog";
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -57,7 +57,7 @@ export default function EditTitleModal({
   const [editCategoryIcon, setEditCategoryIcon] = useState("💰");
   const [savingEditCategory, setSavingEditCategory] = useState(false);
 
-  async function loadOptions() {
+  const loadOptions = useCallback(async () => {
     try {
       const catData = await getCategories(supabase);
       const iconMap = await getCategoryIconMap(supabase);
@@ -69,7 +69,7 @@ export default function EditTitleModal({
     } catch {
       // ignore
     }
-  }
+  }, [supabase]);
 
   useEffect(() => {
     if (!open) return;
@@ -81,7 +81,7 @@ export default function EditTitleModal({
       setConfirmDelete(false);
       loadOptions();
     });
-  }, [open, titleItem]);
+  }, [loadOptions, open, titleItem]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -138,8 +138,6 @@ export default function EditTitleModal({
       const { data: userData } = await supabase.auth.getUser();
       if (!userData?.user) throw new Error("Not authenticated");
 
-      const oldName = editCategoryName === category ? category : category;
-      const targetOldName = categoryIconMap[editCategoryName] !== undefined ? editCategoryName : category;
 
       await renameCategory(supabase, userData.user.id, category, editCategoryName.trim(), editCategoryIcon);
 
@@ -363,111 +361,13 @@ export default function EditTitleModal({
         </div>
       </Modal>
 
-      {showNewCategoryModal && (
-        <Modal
-          open={showNewCategoryModal}
-          onClose={() => setShowNewCategoryModal(false)}
-          title={t.categories.createCategory}
-        >
-          <div className="space-y-4">
-            <Input
-              label={t.categories.categoryName}
-              value={newCategoryName}
-              onChange={(e) => setNewCategoryName(e.target.value)}
-            />
+      {showNewCategoryModal && <CategoryEditorDialog name={newCategoryName} icon={newCategoryIcon} busy={savingNewCategory} error={error}
+        onName={setNewCategoryName} onIcon={setNewCategoryIcon} onSave={() => void handleCreateCategory()}
+        onClose={() => setShowNewCategoryModal(false)} />}
 
-            <div>
-              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">Icon</p>
-              <div className="grid grid-cols-8 gap-2">
-                {TITLE_ICONS.map((icon) => (
-                  <button
-                    key={icon}
-                    type="button"
-                    onClick={() => setNewCategoryIcon(icon)}
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition ${
-                      newCategoryIcon === icon
-                        ? "bg-primary-600 ring-2 ring-primary-600 ring-offset-1 ring-offset-white dark:ring-offset-slate-900"
-                        : "bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
-                    }`}
-                  >
-                    {icon}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                onClick={handleCreateCategory}
-                disabled={savingNewCategory || !newCategoryName.trim()}
-              >
-                {t.categories.create}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setShowNewCategoryModal(false)}
-              >
-                {t.categories.cancel}
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
-
-      {showEditCategoryModal && (
-        <Modal
-          open={showEditCategoryModal}
-          onClose={() => setShowEditCategoryModal(false)}
-          title={t.categories.edit}
-        >
-          <div className="space-y-4">
-            <Input
-              label={t.categories.categoryName}
-              value={editCategoryName}
-              onChange={(e) => setEditCategoryName(e.target.value)}
-            />
-
-            <div>
-              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">Icon</p>
-              <div className="grid grid-cols-8 gap-2">
-                {TITLE_ICONS.map((icon) => (
-                  <button
-                    key={icon}
-                    type="button"
-                    onClick={() => setEditCategoryIcon(icon)}
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition ${
-                      editCategoryIcon === icon
-                        ? "bg-primary-600 ring-2 ring-primary-600 ring-offset-1 ring-offset-white dark:ring-offset-slate-900"
-                        : "bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
-                    }`}
-                  >
-                    {icon}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="flex gap-2">
-              <Button
-                type="button"
-                onClick={handleSaveEditCategory}
-                disabled={savingEditCategory || !editCategoryName.trim()}
-              >
-                {t.categories.saveChanges}
-              </Button>
-              <Button
-                type="button"
-                variant="secondary"
-                onClick={() => setShowEditCategoryModal(false)}
-              >
-                {t.categories.cancel}
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      {showEditCategoryModal && <CategoryEditorDialog editing name={editCategoryName} icon={editCategoryIcon} busy={savingEditCategory} error={error}
+        onName={setEditCategoryName} onIcon={setEditCategoryIcon} onSave={() => void handleSaveEditCategory()}
+        onClose={() => setShowEditCategoryModal(false)} />}
     </>
   );
 }

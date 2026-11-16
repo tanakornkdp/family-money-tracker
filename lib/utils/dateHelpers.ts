@@ -1,13 +1,23 @@
 export function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString("en-US", {
+  return parseDateOnly(date).toLocaleDateString("en-US", {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
 }
 
+export function toDateInputValue(date = new Date()): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
+function parseDateOnly(value: string): Date {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return new Date(value);
+  return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+}
+
 export function getMonthKey(date: string): string {
-  const d = new Date(date);
+  const d = parseDateOnly(date);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
 }
 
@@ -24,7 +34,7 @@ export function getLastNMonths(n: number): string[] {
 export type PeriodGranularity = "day" | "week" | "month" | "year";
 
 export function getPeriodKey(date: string, granularity: PeriodGranularity): string {
-  const d = new Date(date);
+  const d = parseDateOnly(date);
 
   if (granularity === "day") {
     return date;
@@ -34,7 +44,7 @@ export function getPeriodKey(date: string, granularity: PeriodGranularity): stri
     const dayOfWeek = d.getDay();
     const diff = d.getDate() - dayOfWeek;
     const weekStart = new Date(d.getFullYear(), d.getMonth(), diff);
-    return weekStart.toISOString().split("T")[0];
+    return toDateInputValue(weekStart);
   }
 
   if (granularity === "month") {
@@ -47,7 +57,7 @@ export function getPeriodKey(date: string, granularity: PeriodGranularity): stri
 
 export function formatPeriodLabel(periodKey: string, granularity: PeriodGranularity): string {
   if (granularity === "day" || granularity === "week") {
-    return new Date(periodKey).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    return parseDateOnly(periodKey).toLocaleDateString("en-US", { month: "short", day: "numeric" });
   }
 
   if (granularity === "month") {
@@ -67,7 +77,7 @@ export function getDefaultDateRange(): { from: string; to: string } {
   from.setMonth(from.getMonth() - 1);
 
   return {
-    from: from.toISOString().split("T")[0],
-    to: to.toISOString().split("T")[0],
+    from: toDateInputValue(from),
+    to: toDateInputValue(to),
   };
 }

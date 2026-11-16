@@ -2,6 +2,7 @@ import { requireUser } from "@/lib/auth/getUser";
 import { createClient } from "@/lib/supabase/server";
 import { getUserSettings } from "@/services/userSettings";
 import SettingsForm from "@/components/settings/SettingsForm";
+import BackupRestore from "@/components/backup/BackupRestore";
 
 export default async function SettingsPage() {
   const user = await requireUser();
@@ -24,6 +25,7 @@ export default async function SettingsPage() {
         userEmail={user.email ?? ""}
         userId={user.id}
       />
+      <BackupRestore />
     </div>
   );
 }

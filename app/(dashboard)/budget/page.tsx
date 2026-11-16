@@ -4,7 +4,6 @@ import { createClient } from "@/lib/supabase/server";
 import { getBudgetPlans } from "@/services/budgetPlans";
 import { getUserHouseholds } from "@/services/households";
 import { getUserSettings } from "@/services/userSettings";
-import { getTransactions } from "@/services/transactions";
 import { translations, Locale } from "@/lib/i18n/translations";
 import BudgetCalendarManager from "@/components/budget/BudgetCalendarManager";
 
@@ -14,21 +13,14 @@ async function getServerLocale(): Promise<Locale> {
   return localeCookie === "en" ? "en" : "th";
 }
 
-export default async function BudgetPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ household?: string }>;
-}) {
+export default async function BudgetPage({ searchParams }: { searchParams: Promise<{ plan?: string }> }) {
+  const { plan } = await searchParams;
   const user = await requireUser();
   const supabase = await createClient();
   const locale = await getServerLocale();
   const t = translations[locale];
 
-  const { household } = await searchParams;
-  const initialHouseholdId = household ?? "";
-
   const plans = await getBudgetPlans(supabase);
-  const transactions = await getTransactions(supabase);
   const households = await getUserHouseholds(supabase);
   const settings = await getUserSettings(supabase, user.id);
   const currency = settings?.currency ?? "THB";
@@ -43,12 +35,12 @@ export default async function BudgetPage({
       </div>
 
       <BudgetCalendarManager
+        key={plan}
+        initialPlanId={plan}
         initialPlans={plans}
-        initialTransactions={transactions}
         households={households}
         userId={user.id}
         currency={currency}
-        initialHouseholdId={initialHouseholdId}
       />
     </div>
   );

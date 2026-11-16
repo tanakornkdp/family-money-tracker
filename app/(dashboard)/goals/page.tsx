@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth/getUser";
 import { createClient } from "@/lib/supabase/server";
-import { getGoals } from "@/services/goals";
+import { getGoals, getGoalContributionSummaries } from "@/services/goals";
 import { getUserHouseholds } from "@/services/households";
 import { getUserSettings } from "@/services/userSettings";
 import { translations, Locale } from "@/lib/i18n/translations";
@@ -20,6 +20,7 @@ export default async function GoalsPage() {
   const t = translations[locale];
 
   const goals = await getGoals(supabase);
+  const contributionSummaries = await getGoalContributionSummaries(supabase, goals.filter((goal) => goal.household_id));
   const households = await getUserHouseholds(supabase);
   const settings = await getUserSettings(supabase, user.id);
   const currency = settings?.currency ?? "THB";
@@ -40,6 +41,7 @@ export default async function GoalsPage() {
         households={households}
         userId={user.id}
         currency={currency}
+        contributionSummaries={contributionSummaries}
       />
     </div>
   );

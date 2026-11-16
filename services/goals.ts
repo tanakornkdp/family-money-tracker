@@ -1,5 +1,41 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { FinancialGoal, GoalContribution, GoalType } from "@/types";
+import { getUserProfilesByIds } from "@/services/userSettings";
+
+export interface GoalContributionSummary {
+  totalAmount: number;
+  members: { userId: string; name: string; amount: number }[];
+}
+
+export function aggregateGoalContributions(contributions: GoalContribution[]): Record<string, GoalContributionSummary> {
+  const summaries: Record<string, GoalContributionSummary> = {};
+  for (const contribution of contributions) {
+    const summary = summaries[contribution.goal_id] ??= { totalAmount: 0, members: [] };
+    summary.totalAmount += Number(contribution.amount);
+    const member = summary.members.find((item) => item.userId === contribution.user_id);
+    if (member) member.amount += Number(contribution.amount);
+    else summary.members.push({ userId: contribution.user_id, name: contribution.user_id.slice(0, 8), amount: Number(contribution.amount) });
+  }
+  return summaries;
+}
+
+export async function getGoalContributionSummaries(
+  supabase: SupabaseClient,
+  householdGoals: Pick<FinancialGoal, "id">[],
+): Promise<Record<string, GoalContributionSummary>> {
+  const goalIds = [...new Set(householdGoals.map((goal) => goal.id))];
+  if (!goalIds.length) return {};
+  const { data, error } = await supabase.from("goal_contributions").select("goal_id,user_id,amount").in("goal_id", goalIds);
+  if (error) throw new Error(error.message);
+  const summaries = aggregateGoalContributions((data ?? []) as GoalContribution[]);
+  const contributorIds = [...new Set(Object.values(summaries).flatMap((summary) => summary.members.map((member) => member.userId)))];
+  const profiles = await getUserProfilesByIds(supabase, contributorIds);
+  for (const summary of Object.values(summaries)) {
+    for (const member of summary.members) member.name = profiles[member.userId]?.name ?? member.userId.slice(0, 8);
+  }
+  for (const goalId of goalIds) summaries[goalId] ??= { totalAmount: 0, members: [] };
+  return summaries;
+}
 
 export interface GoalInput {
   name: string;

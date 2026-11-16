@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useDarkMode } from "@/lib/hooks/useDarkMode";
@@ -11,6 +11,7 @@ import { UserSettings, AppLanguage, AppTheme } from "@/types";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
+import type { SecurityActivity } from "@/services/securityActivity";
 
 export default function SettingsForm({
   initialSettings,
@@ -21,19 +22,29 @@ export default function SettingsForm({
   userEmail: string;
   userId: string;
 }) {
-  const router = useRouter();
   const supabase = createClient();
-  const { toggle: toggleDarkMode, isDark } = useDarkMode();
+  const router = useRouter();
+  const { setTheme: applyTheme, theme: activeTheme } = useDarkMode();
   const { locale, setLocale, t } = useLanguage();
 
   const [fullName, setFullName] = useState(initialSettings?.full_name ?? "");
   const [currency, setCurrency] = useState(initialSettings?.currency ?? "THB");
-  const [theme, setLocalTheme] = useState<AppTheme>(initialSettings?.theme ?? "system");
   const [avatarUrl, setAvatarUrl] = useState(initialSettings?.avatar_url ?? null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [lockTimeoutMinutes, setLockTimeoutMinutes] = useState(initialSettings?.lock_timeout_minutes ?? 5);
+  const [activity, setActivity] = useState<SecurityActivity[]>([]);
+  const [activityLoading, setActivityLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/security/sign-in-activity", { cache: "no-store" })
+      .then(async (response) => response.ok ? (await response.json()).activity as SecurityActivity[] : [])
+      .then(setActivity)
+      .catch(() => setActivity([]))
+      .finally(() => setActivityLoading(false));
+  }, []);
 
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -58,21 +69,16 @@ export default function SettingsForm({
       await upsertUserSettings(supabase, userId, {
         full_name: fullName,
         currency,
-        theme,
+        theme: activeTheme,
         language: locale,
         avatar_url: finalAvatarUrl,
+        lock_timeout_minutes: lockTimeoutMinutes,
       });
 
-      if ((theme === "dark") !== isDark) {
-        toggleDarkMode();
-      }
-
+      applyTheme(activeTheme);
       setLocale(locale as AppLanguage);
       setSaved(true);
-
-      setTimeout(() => {
-        window.location.reload();
-      }, 300);
+      router.refresh();
     } catch (err) {
       setError((err as Error).message);
     } finally {
@@ -126,6 +132,22 @@ export default function SettingsForm({
         </div>
       </Card>
 
+      <Card className="lg:col-span-2">
+        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{locale === "th" ? "ความปลอดภัยของบัญชี" : "Account security"}</h2>
+        <div className="mt-4 max-w-lg">
+          <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{locale === "th" ? "ล็อกเมื่อไม่มีการใช้งาน" : "Lock after inactivity"}
+            <select value={lockTimeoutMinutes} onChange={(event) => setLockTimeoutMinutes(Number(event.target.value))} className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-800">
+              <option value={0}>{locale === "th" ? "ปิด" : "Disabled"}</option><option value={1}>{locale === "th" ? "1 นาที" : "1 minute"}</option><option value={5}>{locale === "th" ? "5 นาที (ค่าเริ่มต้น)" : "5 minutes (default)"}</option><option value={10}>{locale === "th" ? "10 นาที" : "10 minutes"}</option><option value={15}>{locale === "th" ? "15 นาที" : "15 minutes"}</option><option value={30}>{locale === "th" ? "30 นาที" : "30 minutes"}</option>
+            </select>
+          </label>
+          <p className="mt-2 text-xs text-slate-500">{locale === "th" ? "ปลดล็อกด้วยรหัสผ่านบัญชีเดิม ประวัตินี้แสดงหลังเข้าสู่ระบบและเก็บเฉพาะเวลาและชนิดอุปกรณ์คร่าว ๆ" : "Unlock with your account password. This history stores only the time and a coarse device label."}</p>
+        </div>
+        <div className="mt-5 border-t border-slate-100 pt-4 dark:border-slate-800">
+          <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{locale === "th" ? "การเข้าสู่ระบบล่าสุด" : "Recent sign-ins"}</h3>
+          {activityLoading ? <p className="mt-2 text-sm text-slate-500">{locale === "th" ? "กำลังโหลด…" : "Loading…"}</p> : activity.length ? <ul className="mt-2 divide-y divide-slate-100 dark:divide-slate-800">{activity.map((event) => <li key={event.id} className="flex flex-wrap justify-between gap-2 py-2 text-sm"><span className="text-slate-700 dark:text-slate-300">{event.device_label}</span><time className="text-xs text-slate-500" dateTime={event.created_at}>{new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(event.created_at))}</time></li>)}</ul> : <p className="mt-2 text-sm text-slate-500">{locale === "th" ? "ยังไม่มีประวัติการเข้าสู่ระบบในแอป" : "No sign-in activity recorded yet."}</p>}
+        </div>
+      </Card>
+
       {/* Preferences */}
       <Card>
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
@@ -152,8 +174,11 @@ export default function SettingsForm({
               {t.settings.theme}
             </label>
             <select
-              value={theme}
-              onChange={(e) => setLocalTheme(e.target.value as AppTheme)}
+              value={activeTheme}
+              onChange={(e) => {
+                const nextTheme = e.target.value as AppTheme;
+                applyTheme(nextTheme);
+              }}
               className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="light">{t.settings.light}</option>

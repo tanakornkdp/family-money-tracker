@@ -34,6 +34,11 @@ import StackedExpenseChart from "@/components/dashboard/StackedExpenseChart";
 import CategoryBreakdownChart from "@/components/dashboard/CategoryBreakdownChart";
 import { getCardsWithBalance } from "@/services/creditCards";
 import AiInsightCard from "@/components/dashboard/AiInsightCard";
+import Link from "next/link";
+import { Camera, Image as ImageIcon, Mic, QrCode, Sparkles } from "lucide-react";
+import { getHouseholdRecurringBills, getRecurringBills } from "@/services/recurringBills";
+import { calculateMonthEndForecast, getBangkokDate } from "@/services/cashForecast";
+import MonthEndForecast from "@/components/dashboard/MonthEndForecast";
 
 async function getServerLocale(): Promise<Locale> {
   const cookieStore = await cookies();
@@ -79,13 +84,41 @@ export default async function DashboardPage({
     dateTo,
   });
   const kpis = calculateKpis(transactions);
-  const cashBalance = calculateCashBalance(transactions);
+  const balanceTransactions = from || to
+    ? await getTransactions(supabase, {
+        householdId: selectedHouseholdId || undefined,
+        userIds: selectedMemberIds.length ? selectedMemberIds : undefined,
+      })
+    : transactions;
+  const cashBalance = calculateCashBalance(balanceTransactions);
   const settings = userData?.user
     ? await getUserSettings(supabase, userData.user.id)
     : null;
   const currency = settings?.currency ?? "THB";
   const locale = await getServerLocale();
   const t = translations[locale];
+  const [recurringItems, allScopeTransactions] = await Promise.all([
+    selectedHouseholdId
+      ? getHouseholdRecurringBills(supabase, selectedHouseholdId, selectedMemberIds)
+      : currentUserId ? getRecurringBills(supabase, currentUserId) : Promise.resolve([]),
+    getTransactions(supabase, {
+      householdId: selectedHouseholdId || undefined,
+      userIds: selectedMemberIds.length > 0 ? selectedMemberIds : undefined,
+    }),
+  ]);
+  const forecastTransactions = selectedHouseholdId || selectedMemberIds.length > 0
+    ? allScopeTransactions
+    : allScopeTransactions.filter((transaction) => transaction.user_id === currentUserId && !transaction.household_id);
+  const memberScopeIsCurrentUser = selectedMemberIds.length === 1 && selectedMemberIds[0] === currentUserId;
+  const personalScope = !selectedHouseholdId && (!selectedMemberIds.length || memberScopeIsCurrentUser);
+  const forecastRecurringItems = selectedHouseholdId || personalScope ? recurringItems : [];
+  const monthEndForecast = calculateMonthEndForecast({
+    today: getBangkokDate(),
+    currentBalance: calculateCashBalance(forecastTransactions),
+    transactions: forecastTransactions,
+    recurringItems: forecastRecurringItems,
+    householdId: selectedHouseholdId || undefined,
+  });
 
   const households = await getUserHouseholds(supabase);
 
@@ -127,6 +160,28 @@ export default async function DashboardPage({
 
   return (
     <div className="space-y-8">
+      <section className="md:hidden rounded-[2rem] bg-white p-5 shadow-sm ring-1 ring-slate-200/80 dark:bg-slate-900 dark:ring-slate-800">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <p className="text-xs font-semibold text-slate-400">มุมมองของฉัน</p>
+            <h1 className="mt-1 text-xl font-bold text-slate-900 dark:text-white">สรุปการเงิน</h1>
+          </div>
+          <Link href="/assistant" className="rounded-full bg-emerald-50 p-2.5 text-emerald-600 dark:bg-emerald-950/50 dark:text-emerald-300" aria-label="เปิดผู้ช่วย AI"><Sparkles size={20} /></Link>
+        </div>
+        <div className="mt-5 grid grid-cols-2 divide-x divide-slate-200 rounded-2xl bg-slate-50 p-3 dark:divide-slate-700 dark:bg-slate-800/70">
+          <div className="px-2"><p className="text-xs text-slate-400">รายรับเดือนนี้</p><p className="mt-1 text-lg font-bold text-emerald-600">{formatCurrency(kpis.totalIncome, currency)}</p></div>
+          <div className="px-3"><p className="text-xs text-slate-400">รายจ่ายเดือนนี้</p><p className="mt-1 text-lg font-bold text-rose-500">{formatCurrency(kpis.totalExpense, currency)}</p></div>
+        </div>
+        <div className="mt-5 grid grid-cols-4 gap-2">
+          {[
+            { href: "/receipts", label: "ถ่ายสลิป", icon: Camera },
+            { href: "/receipts", label: "คลังภาพ", icon: ImageIcon },
+            { href: "/assistant", label: "พูดกับ AI", icon: Mic },
+            { href: "/receipts", label: "สแกน QR", icon: QrCode },
+          ].map(({ href, label, icon: Icon }) => <Link key={label} href={href} className="flex min-h-20 flex-col items-center justify-center gap-2 rounded-2xl bg-emerald-50 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300"><Icon size={21} /><span>{label}</span></Link>)}
+        </div>
+      </section>
+
       <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-4">
         <DashboardHeader />
         <HouseholdViewSwitcher
@@ -142,6 +197,8 @@ export default async function DashboardPage({
         memberOptions={memberOptions}
         selectedMemberIds={selectedMemberIds}
       />
+
+      <MonthEndForecast result={monthEndForecast} currency={currency} locale={locale} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
@@ -174,18 +231,14 @@ export default async function DashboardPage({
       
       {creditCards.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          {creditCards.map((card) => {
-            const [cardIcon, cardDisplayName] = card.name.includes("|")
-              ? card.name.split("|")
-              : [card.card_type === "debit" ? "🏧" : "💳", card.name];
-            return (
-              <div
-                key={card.id}
-                className="p-5 rounded-2xl text-white shadow-md relative overflow-hidden"
-                style={{ background: `linear-gradient(135deg, ${card.color}dd, ${card.color}88)` }}
-              >
-                <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
-                <p className="text-xs text-white/70 uppercase tracking-wide font-medium mb-1">{cardIcon} {cardDisplayName}</p>
+          {creditCards.map((card) => (
+            <div
+              key={card.id}
+              className="p-5 rounded-2xl text-white shadow-md relative overflow-hidden"
+              style={{ background: `linear-gradient(135deg, ${card.color}dd, ${card.color}88)` }}
+            >
+              <div className="absolute top-0 right-0 w-20 h-20 rounded-full bg-white/10 -translate-y-6 translate-x-6" />
+              <p className="text-xs text-white/70 uppercase tracking-wide font-medium mb-1">💳 {card.name}</p>
               <p className="text-2xl font-bold">
                 {formatCurrency(card.balance, currency)}
               </p>
@@ -203,8 +256,7 @@ export default async function DashboardPage({
                 />
               </div>
             </div>
-          );
-        })}
+          ))}
         </div>
       )}
 

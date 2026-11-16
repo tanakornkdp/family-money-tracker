@@ -1,43 +1,51 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/lib/supabase/client";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 
 export default function RegisterPage() {
-  const router = useRouter();
-  const supabase = createClient();
-
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
   const [loading, setLoading] = useState(false);
+  const hasSupabaseConfig = Boolean(
+    process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
-    setLoading(true);
-
-    const { error: signUpError } = await supabase.auth.signUp({
-      email,
-      password,
-      options: {
-        emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback`,
-      },
-    });
-
-    setLoading(false);
-
-    if (signUpError) {
-      setError(signUpError.message);
+    if (!hasSupabaseConfig) {
+      setError("ยังไม่ได้ตั้งค่า Supabase ใน .env.local");
       return;
     }
+    setLoading(true);
 
-    setSuccess(true);
+    try {
+      const supabase = createClient();
+      const { error: signUpError } = await supabase.auth.signUp({
+        email,
+        password,
+        options: {
+          emailRedirectTo: `${process.env.NEXT_PUBLIC_SITE_URL}/callback`,
+        },
+      });
+
+      if (signUpError) {
+        setError(signUpError.message);
+        return;
+      }
+
+      setSuccess(true);
+    } catch {
+      setError("เชื่อมต่อไม่สำเร็จ กรุณาตรวจสอบการตั้งค่าและอินเทอร์เน็ต");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -49,6 +57,13 @@ export default function RegisterPage() {
         <p className="mt-1 text-sm text-slate-500">
           Start tracking your finances with AI
         </p>
+
+        {!hasSupabaseConfig && (
+          <div className="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+            ต้องตั้งค่า <code>NEXT_PUBLIC_SUPABASE_URL</code> และ{" "}
+            <code>NEXT_PUBLIC_SUPABASE_ANON_KEY</code> ก่อนสมัครสมาชิก
+          </div>
+        )}
 
         {success ? (
           <div className="mt-6 rounded-xl bg-green-50 border border-green-200 p-4 text-sm text-green-700">

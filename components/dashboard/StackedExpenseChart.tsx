@@ -9,12 +9,10 @@ import {
   Tooltip,
   CartesianGrid,
   ResponsiveContainer,
-  TooltipProps,
-  Cell,
 } from "recharts";
 import { StackedBarPoint } from "@/services/transactions";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
-import Modal from "@/components/ui/Modal";
+import { X } from "lucide-react";
 
 const COLORS = [
   "#3b82f6", "#22c55e", "#f97316", "#a855f7", "#ef4444",
@@ -130,18 +128,28 @@ export default function StackedExpenseChart({
         </BarChart>
       </ResponsiveContainer>
 
-      <Modal
-        open={!!clickedBar}
-        onClose={() => setClickedBar(null)}
-        title={clickedBar?.label || ""}
-      >
-        {clickedBar && (
-          <div className="space-y-4">
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              รวม {formatCurrency(clickedBar.total, currency)}
-            </p>
+      {clickedBar && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4" onClick={() => setClickedBar(null)}>
+          <div
+            className="w-full max-w-sm rounded-2xl bg-white dark:bg-slate-900 shadow-2xl border border-slate-200 dark:border-slate-700 p-5"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h3 className="font-bold text-slate-900 dark:text-slate-100">{clickedBar.label}</h3>
+                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                  รวม {formatCurrency(clickedBar.total, currency)}
+                </p>
+              </div>
+              <button
+                onClick={() => setClickedBar(null)}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800"
+              >
+                <X size={16} />
+              </button>
+            </div>
 
-            <div className="space-y-3 max-h-80 overflow-y-auto pr-1">
+            <div className="space-y-3 max-h-80 overflow-y-auto">
               {clickedBar.entries.map((entry) => {
                 const pct = clickedBar.total > 0 ? ((entry.amount / clickedBar.total) * 100).toFixed(1) : "0";
                 return (
@@ -170,8 +178,8 @@ export default function StackedExpenseChart({
               })}
             </div>
           </div>
-        )}
-      </Modal>
+        </div>
+      )}
     </div>
   );
 }

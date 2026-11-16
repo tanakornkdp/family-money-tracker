@@ -1,156 +1,124 @@
 "use client";
 
 import { formatCurrency } from "@/lib/utils/formatCurrency";
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
-import { Receipt, Category, CreditCard, PaymentMethod } from "@/types";
-import { formatDate } from "@/lib/utils/dateHelpers";
+import type { Receipt, TravelTrip } from "@/types";
+import { formatDate, toDateInputValue } from "@/lib/utils/dateHelpers";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
-import { Trash2, Sparkles } from "lucide-react";
-import { getCategories } from "@/services/categories";
-import { getCreditCards } from "@/services/creditCards";
+import { getReceiptSignedUrl } from "@/services/receipts";
 
 export default function ReceiptList({
   receipts,
+  userId,
   currency = "THB",
 }: {
   receipts: Receipt[];
+  userId: string;
   currency?: string;
 }) {
 
   const router = useRouter();
   const supabase = createClient();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
 
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("cash");
-  const [selectedCardId, setSelectedCardId] = useState<string>("");
+  const [amount, setAmount] = useState("");
+  const [date, setDate] = useState("");
   const [loading, setLoading] = useState(false);
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
-
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [creditCards, setCreditCards] = useState<CreditCard[]>([]);
+  const [receiptImage, setReceiptImage] = useState<{ id: string; url: string } | null>(null);
+  const [merchantSearch, setMerchantSearch] = useState("");
+  const [amountSearch, setAmountSearch] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [activeTrips, setActiveTrips] = useState<TravelTrip[]>([]);
+  const [selectedTripId, setSelectedTripId] = useState("");
+  const [travelRate, setTravelRate] = useState("");
+  const [travelRateDate, setTravelRateDate] = useState("");
 
   useEffect(() => {
-    async function loadData() {
-      try {
-        const catData = await getCategories(supabase);
-        setCategories(catData);
-      } catch (err) {
-        console.error("Failed to load categories:", err);
-      }
+    let cancelled = false;
+    fetch("/api/travel/active", { cache: "no-store" })
+      .then(async (response) => response.ok ? response.json() : null)
+      .then((data: { trips?: TravelTrip[] } | null) => {
+        if (!cancelled && data?.trips) {
+          setActiveTrips(data.trips);
+          if (data.trips.length === 1) setSelectedTripId(data.trips[0].id);
+        }
+      })
+      .catch(() => undefined);
+    return () => { cancelled = true; };
+  }, []);
 
-      try {
-        const cardData = await getCreditCards(supabase);
-        setCreditCards(cardData);
-      } catch (err) {
-        console.error("Failed to load credit cards:", err);
-      }
-    }
-    loadData();
-  }, [supabase]);
+  const selectedTrip = activeTrips.find((trip) => trip.id === selectedTripId);
 
-  const startConvert = async (receipt: Receipt) => {
+  useEffect(() => {
+    if (!selectedTrip || !date || selectedTrip.currency === "THB") return;
+    let cancelled = false;
+    fetch(`/api/travel/rate?currency=${selectedTrip.currency}&date=${date}`, { cache: "no-store" })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error);
+        return data as { rate: number; date: string };
+      })
+      .then((data) => {
+        if (!cancelled) { setTravelRate(String(data.rate)); setTravelRateDate(data.date); }
+      })
+      .catch(() => {
+        if (!cancelled) { setTravelRate(String(selectedTrip.exchange_rate_to_thb)); setTravelRateDate(""); }
+      });
+    return () => { cancelled = true; };
+  }, [selectedTrip, date]);
+
+  const startConvert = useCallback((receipt: Receipt) => {
     setConvertingId(receipt.id);
     setTitle(receipt.parsed_merchant ?? "");
     setCategory("");
-    setPaymentMethod("cash");
-    setSelectedCardId("");
+    setAmount(receipt.parsed_amount?.toString() ?? "");
+    setDate(receipt.parsed_date ?? (receipt.ocr_text?.startsWith('[AI อ่านภาพ') ? '' : toDateInputValue()));
+  }, []);
 
-    if (receipt.ocr_text) {
-      setIsAnalyzing(true);
-      try {
-        const response = await fetch("/api/ai/receipt-analyze", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            ocrText: receipt.ocr_text,
-            categories: categories.map((c) => c.name),
-            cards: creditCards,
-          }),
-        });
-
-        if (response.ok) {
-          const aiResult = await response.json();
-          if (aiResult.title) setTitle(aiResult.title);
-          
-          if (aiResult.category) {
-            const matched = categories.find(
-              (c) => c.name.toLowerCase() === aiResult.category.toLowerCase()
-            );
-            if (matched) {
-              setCategory(matched.name);
-            } else if (categories.length > 0) {
-              const fallback = categories.find((c) => c.name.includes(aiResult.category) || aiResult.category.includes(c.name));
-              if (fallback) {
-                setCategory(fallback.name);
-              } else {
-                setCategory(categories[0].name);
-              }
-            } else {
-              setCategory(aiResult.category);
-            }
-          }
-
-          if (aiResult.payment_method) {
-            setPaymentMethod(aiResult.payment_method);
-            if (aiResult.card_id) {
-              setSelectedCardId(aiResult.card_id);
-            } else {
-              const filtered = creditCards.filter(
-                (c) => c.card_type === (aiResult.payment_method === "credit_card" ? "credit" : "debit")
-              );
-              if (filtered.length > 0) {
-                setSelectedCardId(filtered[0].id);
-              }
-            }
-          }
-        }
-      } catch (err) {
-        console.error("AI receipt analyze error:", err);
-      } finally {
-        setIsAnalyzing(false);
-      }
-    }
-  };
-
-  const handleDelete = async (receiptId: string, filePath?: string) => {
-    if (!window.confirm(t.receipts.deleteConfirm)) return;
-    setLoading(true);
-    setError(null);
-
-    try {
-      if (filePath) {
-        try {
-          await supabase.storage.from("receipts").remove([filePath]);
-        } catch (storageErr) {
-          console.error("Storage delete error", storageErr);
-        }
-      }
-
-      const { error: dbError } = await supabase
-        .from("receipts")
-        .delete()
-        .eq("id", receiptId);
-
-      if (dbError) throw new Error(dbError.message);
-
-      router.refresh();
-    } catch (err) {
-      setError((err as Error).message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  useEffect(() => {
+    let active = true;
+    const openReceipt = () => {
+      const receipt = receipts.find(row => window.location.hash === "#receipt-" + encodeURIComponent(row.id));
+      if (!receipt || receipt.user_id !== userId || receipt.transaction_id || !["pending", "processed"].includes(receipt.status)) return;
+      queueMicrotask(() => {
+        if (!active) return;
+        startConvert(receipt);
+        document.getElementById("receipt-" + receipt.id)?.scrollIntoView({ block: "start" });
+      });
+    };
+    openReceipt();
+    window.addEventListener("hashchange", openReceipt);
+    return () => { active = false; window.removeEventListener("hashchange", openReceipt); };
+  }, [receipts, startConvert, userId]);
 
   const handleConvert = async (receipt: Receipt) => {
-    if (!receipt.parsed_amount) return;
+    if (!title.trim() || !date || !/^\d{4}-\d{2}-\d{2}$/.test(date) || !Number.isFinite(Date.parse(date)) || new Date(date).toISOString().slice(0, 10) !== date) {
+      setError('กรุณาตรวจชื่อร้านและวันที่ก่อนยืนยัน');
+      return;
+    }
+    const parsedAmount = Number(amount);
+    if (!Number.isFinite(parsedAmount) || parsedAmount <= 0) {
+      setError("กรุณาตรวจสอบจำนวนเงินให้มากกว่า 0");
+      return;
+    }
+    if (activeTrips.length > 1 && !selectedTrip) {
+      setError("เลือกทริปที่ต้องการผูกกับใบเสร็จนี้ก่อน");
+      return;
+    }
+    const rate = selectedTrip?.currency === "THB" ? 1 : Number(travelRate);
+    if (selectedTrip && (!Number.isFinite(rate) || rate <= 0)) {
+      setError("กรุณารออัตราแลกเปลี่ยน หรือกรอกอัตราเอง");
+      return;
+    }
     setLoading(true);
     setError(null);
 
@@ -167,12 +135,17 @@ export default function ReceiptList({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: title || "Receipt purchase",
-          amount: receipt.parsed_amount,
+          amount: parsedAmount,
           type: "expense",
           category: category || "Other",
-          date: receipt.parsed_date || new Date().toISOString().split("T")[0],
-          payment_method: paymentMethod,
-          card_id: selectedCardId || null,
+          date: date || toDateInputValue(),
+          ...(selectedTrip ? {
+            travel_trip_id: selectedTrip.id,
+            travel_original_amount: parsedAmount,
+            travel_original_currency: selectedTrip.currency,
+            travel_exchange_rate_to_thb: rate,
+            travel_exchange_rate_date: travelRateDate || date,
+          } : {}),
         }),
       });
 
@@ -184,15 +157,28 @@ export default function ReceiptList({
       const resultData = await res.json();
       const newTransactionId = resultData.transaction.id;
 
-      await supabase
+      const { data: convertedReceipt, error: receiptUpdateError } = await supabase
         .from("receipts")
         .update({
           status: "converted",
           transaction_id: newTransactionId,
         })
-        .eq("id", receipt.id);
+        .eq("id", receipt.id)
+        .eq("user_id", currentUser.id)
+        .eq("status", receipt.status)
+        .select("id")
+        .maybeSingle();
+
+      if (receiptUpdateError || !convertedReceipt) {
+        const rollback = await fetch(`/api/transactions/${newTransactionId}`, { method: "DELETE" });
+        if (!rollback.ok) {
+          throw new Error("บันทึกรายการแล้ว แต่ปิดใบเสร็จไม่สำเร็จ กรุณาตรวจสอบรายการก่อนลองอีกครั้ง");
+        }
+        throw new Error(receiptUpdateError?.message ?? "ใบเสร็จนี้ถูกแปลงเป็นรายการไปแล้ว");
+      }
 
       setConvertingId(null);
+      window.dispatchEvent(new Event("finance:review-updated"));
       router.refresh();
     } catch (err) {
       setError((err as Error).message);
@@ -200,6 +186,13 @@ export default function ReceiptList({
       setLoading(false);
     }
   };
+
+  const filteredReceipts = useMemo(() => receipts.filter((receipt) => {
+    const receiptDate = receipt.parsed_date ?? receipt.created_at.slice(0, 10);
+    const merchantMatches = !merchantSearch || (receipt.parsed_merchant ?? "").toLocaleLowerCase().includes(merchantSearch.toLocaleLowerCase());
+    const amountMatches = !amountSearch || (receipt.parsed_amount !== null && String(receipt.parsed_amount).includes(amountSearch.replace(/,/g, "")));
+    return merchantMatches && amountMatches && (!dateFrom || receiptDate >= dateFrom) && (!dateTo || receiptDate <= dateTo);
+  }), [receipts, merchantSearch, amountSearch, dateFrom, dateTo]);
 
   if (receipts.length === 0) {
     return (
@@ -211,15 +204,23 @@ export default function ReceiptList({
 
   return (
     <div className="space-y-3">
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+        <Input label={locale === "en" ? "Merchant" : "ร้านค้า"} value={merchantSearch} onChange={(event) => setMerchantSearch(event.target.value)} placeholder={locale === "en" ? "Search merchant" : "ค้นหาร้านค้า"} />
+        <Input label={locale === "en" ? "Amount" : "ยอดเงิน"} value={amountSearch} onChange={(event) => setAmountSearch(event.target.value)} type="number" min="0" placeholder="0" />
+        <Input label={locale === "en" ? "From" : "ตั้งแต่"} value={dateFrom} onChange={(event) => setDateFrom(event.target.value)} type="date" />
+        <Input label={locale === "en" ? "To" : "ถึงวันที่"} value={dateTo} onChange={(event) => setDateTo(event.target.value)} type="date" />
+      </div>
       {error && (
         <div className="rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 p-3 text-sm text-red-600 dark:text-red-400">
           {error}
         </div>
       )}
 
-      {receipts.map((r) => (
+      {filteredReceipts.length === 0 && <p className="py-6 text-center text-sm text-slate-500">{locale === "en" ? "No receipts match your search." : "ไม่พบใบเสร็จตามเงื่อนไขที่เลือก"}</p>}
+      {filteredReceipts.map((r) => (
         <div
           key={r.id}
+          id={`receipt-${r.id}`}
           className="rounded-xl border border-slate-200 dark:border-slate-800 p-4"
         >
           <div className="flex items-center justify-between">
@@ -231,118 +232,83 @@ export default function ReceiptList({
                 {formatDate(r.created_at)} - Status: {r.status}
               </p>
             </div>
-            <div className="flex items-center gap-3">
-              {r.parsed_amount && (
-                <p className="font-semibold text-slate-900 dark:text-slate-100">
-                  {formatCurrency(r.parsed_amount, currency)}
-                </p>
-              )}
-              <button
-                onClick={() => handleDelete(r.id, r.file_path)}
-                disabled={loading}
-                className="p-1.5 text-slate-400 hover:text-red-500 dark:text-slate-500 dark:hover:text-red-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors"
-                title={t.receipts.delete}
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
+           {r.parsed_amount && (
+              <p className="font-semibold text-slate-900 dark:text-slate-100">
+                {formatCurrency(r.parsed_amount, selectedTrip?.currency ?? currency)}
+              </p>
+            )}
           </div>
 
-          {r.status === "processed" && (
+          {r.ocr_text?.startsWith('[AI อ่านภาพ') && <details className="mt-3 text-sm text-slate-600 dark:text-slate-300"><summary className="cursor-pointer py-2">ตรวจผลอ่านและข้อควรทบทวน</summary><p className="whitespace-pre-wrap break-words rounded-xl bg-mobile-surface-muted p-3">{r.ocr_text}</p></details>}
+          {r.file_path && (
+            <div className="mt-2 text-sm">
+              {receiptImage?.id === r.id ? (
+                <a href={receiptImage.url} target="_blank" rel="noopener noreferrer" className="underline">
+                  {locale === "th" ? "เปิดรูปใบเสร็จ" : "Open receipt image"}
+                </a>
+              ) : (
+                <button type="button" className="underline" onClick={async () => {
+                  setError(null);
+                  try {
+                    setReceiptImage({ id: r.id, url: await getReceiptSignedUrl(supabase, r.file_path) });
+                  } catch {
+                    setError(locale === "th" ? "เปิดรูปใบเสร็จไม่ได้" : "Could not open the receipt image.");
+                  }
+                }}>
+                  {locale === "th" ? "ดูรูปใบเสร็จ" : "View receipt image"}
+                </button>
+              )}
+            </div>
+          )}
+
+          {(r.status === "processed" || r.status === "pending") && !r.transaction_id && r.user_id === userId && (
             <div className="mt-3">
               {convertingId === r.id ? (
-                <div className="space-y-3 p-3 bg-slate-50 dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                  {isAnalyzing && (
-                    <div className="flex items-center gap-2 text-xs font-medium text-indigo-600 dark:text-indigo-400 py-1 px-2 bg-indigo-50 dark:bg-indigo-950/40 rounded-lg w-fit animate-pulse">
-                      <Sparkles className="w-3.5 h-3.5" />
-                      <span>AI is analyzing receipt content...</span>
-                    </div>
-                  )}
-
+                <div className="space-y-2">
+                  <p className="text-sm text-mobile-muted">{locale === "th" ? "ตรวจชื่อร้าน ยอดเงิน วันที่ และหมวดหมู่ จากนั้นกดบันทึกรายจ่าย" : "Check the merchant, amount, date and category, then save the expense."}</p>
                   <Input
                     label={t.transactions.formTitle}
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
                   />
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                      {t.transactions.formCategory}
-                    </label>
-                    <select
-                      className="w-full rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      value={category}
-                      onChange={(e) => setCategory(e.target.value)}
-                    >
-                      <option value="">{t.transactions.selectCategory}</option>
-                      {categories.map((cat) => (
-                        <option key={cat.id} value={cat.name}>
-                          {cat.icon} {cat.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div className="flex flex-col gap-1.5">
-                    <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                      {t.creditCards.paymentMethod}
-                    </label>
-                    <select
-                      className="w-full rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                      value={paymentMethod}
-                      onChange={(e) => {
-                        const val = e.target.value as PaymentMethod;
-                        setPaymentMethod(val);
-                        if (val === "cash") {
-                          setSelectedCardId("");
-                        } else {
-                          const filtered = creditCards.filter(
-                            (c) => c.card_type === (val === "credit_card" ? "credit" : "debit")
-                          );
-                          if (filtered.length > 0) {
-                            setSelectedCardId(filtered[0].id);
-                          } else {
-                            setSelectedCardId("");
-                          }
-                        }
-                      }}
-                    >
-                      <option value="cash">{t.creditCards.cash}</option>
-                      <option value="credit_card">{t.creditCards.creditCard}</option>
-                      <option value="debit_card">{t.creditCards.debitCard}</option>
-                    </select>
-                  </div>
-
-                  {(paymentMethod === "credit_card" || paymentMethod === "debit_card") && (
-                    <div className="flex flex-col gap-1.5">
-                      <label className="text-xs font-medium text-slate-700 dark:text-slate-300">
-                        {t.creditCards.selectCard}
-                      </label>
-                      <select
-                        className="w-full rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
-                        value={selectedCardId}
-                        onChange={(e) => setSelectedCardId(e.target.value)}
-                      >
-                        <option value="">-- {t.creditCards.selectCard} --</option>
-                        {creditCards
-                          .filter((c) => c.card_type === (paymentMethod === "credit_card" ? "credit" : "debit"))
-                          .map((card) => {
-                            const [cardIcon, cardDisplayName] = card.name.includes("|")
-                              ? card.name.split("|")
-                              : [card.card_type === "debit" ? "🏧" : "💳", card.name];
-                            return (
-                              <option key={card.id} value={card.id}>
-                                {cardIcon} {cardDisplayName} ({card.card_type === "credit" ? t.creditCards.credit : t.creditCards.debit})
-                              </option>
-                            );
-                          })}
+                  <Input
+                    label={selectedTrip ? `จำนวนเงิน (${selectedTrip.currency})` : t.transactions.formAmount}
+                    type="number"
+                    min="0.01"
+                    step="0.01"
+                    value={amount}
+                    onChange={(e) => setAmount(e.target.value)}
+                  />
+                  {activeTrips.length > 1 && (
+                    <label className="block space-y-1 text-sm font-medium text-slate-700 dark:text-slate-300">
+                      เลือกทริป
+                      <select value={selectedTripId} onChange={(event) => setSelectedTripId(event.target.value)} className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-base dark:border-slate-700 dark:bg-slate-800">
+                        <option value="">เลือกทริป</option>
+                        {activeTrips.map((trip) => <option key={trip.id} value={trip.id}>{trip.name} · {trip.currency}</option>)}
                       </select>
+                    </label>
+                  )}
+                  {selectedTrip && selectedTrip.currency !== "THB" && (
+                    <div className="space-y-1">
+                      <Input label={`1 ${selectedTrip.currency} = กี่บาท`} type="number" min="0.000001" step="0.000001" value={travelRate} onChange={(event) => setTravelRate(event.target.value)} />
+                      <p className="text-xs text-slate-500">{travelRateDate ? `เรทอ้างอิง ณ ${travelRateDate}` : "ใช้อัตราที่กำหนดไว้ในทริป · แก้ไขได้"}</p>
                     </div>
                   )}
-
-                  <div className="flex gap-2 pt-2">
-                    <Button onClick={() => handleConvert(r)} disabled={loading || isAnalyzing}>
-                      {t.goals.confirmAdd}
+                  <Input
+                    label={t.transactions.formDate}
+                    type="date"
+                    value={date}
+                    onChange={(e) => setDate(e.target.value)}
+                  />
+                  <Input
+                    label={t.transactions.formCategory}
+                    value={category}
+                    onChange={(e) => setCategory(e.target.value)}
+                    placeholder="e.g. Groceries"
+                  />
+                  <div className="flex gap-2">
+                    <Button onClick={() => handleConvert(r)} disabled={loading}>
+                      {locale === "th" ? "บันทึกรายจ่าย" : "Save expense"}
                     </Button>
                     <Button variant="secondary" onClick={() => setConvertingId(null)}>
                       {t.goals.cancel}
@@ -355,7 +321,7 @@ export default function ReceiptList({
                   onClick={() => startConvert(r)}
                   className="w-full"
                 >
-                  {t.transactions.addTransaction}
+                  {locale === "th" ? "ตรวจและบันทึกรายจ่าย" : "Review and record expense"}
                 </Button>
               )}
             </div>

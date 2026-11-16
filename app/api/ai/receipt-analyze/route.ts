@@ -1,13 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import Groq from "groq-sdk";
+import { completeFreeAI, FreeAIUnavailableError } from "@/lib/ai/freeRouter";
+
+export const maxDuration = 120;
 
 export async function POST(request: NextRequest) {
-  const apiKey = process.env.GROQ_API_KEY;
-  if (!apiKey) {
-    return NextResponse.json({ error: "GROQ_API_KEY is not configured." }, { status: 500 });
-  }
-  const groq = new Groq({ apiKey });
 
   const supabase = await createClient();
   const { data: userData } = await supabase.auth.getUser();
@@ -58,23 +55,20 @@ Return ONLY a raw JSON object with the following fields, without any markdown fo
 
 Response:`;
 
-    const response = await groq.chat.completions.create({
-      model: "llama-3.1-8b-instant",
+    const response = await completeFreeAI({
       messages: [{ role: "user", content: prompt }],
-      max_tokens: 300,
-      temperature: 0.1, // low temperature for precise extraction
+      json: true,
     });
 
-    const text = response.choices[0].message.content ?? "{}";
+    const text = response.text ?? "{}";
     const clean = text.replace(/```json|```/g, "").trim();
     const analysis = JSON.parse(clean);
 
     return NextResponse.json(analysis);
   } catch (err) {
-    console.error("Receipt analyze AI route error:", err);
     return NextResponse.json(
-      { error: (err as Error).message },
-      { status: 500 }
+      { error: err instanceof FreeAIUnavailableError ? err.message : "AI service unavailable", code: err instanceof FreeAIUnavailableError ? "FREE_AI_UNAVAILABLE" : "AI_ERROR" },
+      { status: err instanceof FreeAIUnavailableError ? 503 : 500 }
     );
   }
 }

@@ -11,11 +11,9 @@ import {
   countTitlesUsingCategory,
 } from "@/services/categories";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
-import { TITLE_ICONS } from "@/lib/constants/titleIcons";
+import CategoryEditorDialog from "@/components/categories/CategoryEditorDialog";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
-import Input from "@/components/ui/Input";
-import Modal from "@/components/ui/Modal";
 import { Pencil, Trash2 } from "lucide-react";
 
 export default function CategoriesManager({
@@ -44,8 +42,6 @@ export default function CategoriesManager({
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const [usageCounts, setUsageCounts] = useState<Record<string, number>>({});
 
-  const [showAll, setShowAll] = useState(false);
-  const displayedCategories = showAll ? categories : categories.slice(0, 9);
 
   const handleCreate = async () => {
     if (!newName.trim()) return;
@@ -124,64 +120,25 @@ export default function CategoriesManager({
 
   return (
     <div className="space-y-6">
-      {error && !editingCategory && (
+      {error && !editingCategory && !showCreate && (
         <div className="rounded-xl bg-red-50 dark:bg-red-950/40 border border-red-200 dark:border-red-900 p-3 text-sm text-red-600 dark:text-red-400">
           {error}
         </div>
       )}
 
-      {!showCreate ? (
-        <Button onClick={() => setShowCreate(true)}>{t.categories.createCategory}</Button>
-      ) : (
-        <Card>
-          <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
-            {t.categories.createCategory}
-          </h2>
-          <div className="space-y-3">
-            <Input
-              label={t.categories.categoryName}
-              value={newName}
-              onChange={(e) => setNewName(e.target.value)}
-            />
-            <div>
-              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">Icon</p>
-              <div className="grid gap-2" style={{ gridTemplateColumns: "repeat(15, minmax(0, 1fr))" }}>
-                {TITLE_ICONS.map((icon) => (
-                  <button
-                    key={icon}
-                    type="button"
-                    onClick={() => setNewIcon(icon)}
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition ${
-                      newIcon === icon
-                        ? "bg-primary-600 ring-2 ring-primary-600 ring-offset-1 ring-offset-white dark:ring-offset-slate-900"
-                        : "bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
-                    }`}
-                  >
-                    {icon}
-                  </button>
-                ))}
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <Button onClick={handleCreate} disabled={loading || !newName.trim()}>
-                {t.categories.create}
-              </Button>
-              <Button variant="secondary" onClick={() => setShowCreate(false)} disabled={loading}>
-                {t.categories.cancel}
-              </Button>
-            </div>
-          </div>
-        </Card>
-      )}
+      <Button onClick={() => { setError(null); setShowCreate(true); }}>{t.categories.createCategory}</Button>
+      {showCreate && <CategoryEditorDialog name={newName} icon={newIcon} busy={loading} error={error}
+        onName={setNewName} onIcon={setNewIcon} onSave={() => void handleCreate()}
+        onClose={() => setShowCreate(false)} />}
 
       {categories.length === 0 ? (
         <Card>
           <p className="text-sm text-slate-500 dark:text-slate-400">{t.categories.noCategories}</p>
         </Card>
       ) : (
-        <div className="grid grid-cols-4 gap-5 max-h-[480px] overflow-y-auto pr-1">
+        <div className="grid grid-cols-1 gap-2 overflow-y-auto pr-1 sm:grid-cols-2 sm:gap-3 lg:max-h-[480px] lg:grid-cols-4 lg:gap-5">
           {categories.map((cat) => (
-            <Card key={cat.id} className="py-3">
+            <Card key={cat.id} className="min-w-0 py-3">
               {confirmDeleteId === cat.id ? (
                 <div className="rounded-xl border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/40 p-3">
                   <p className="text-sm text-red-700 dark:text-red-400 mb-3">
@@ -204,14 +161,15 @@ export default function CategoriesManager({
                   </div>
                 </div>
               ) : (
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <span className="text-2xl">{cat.icon}</span>
-                    <span className="font-medium text-slate-900 dark:text-slate-100">{cat.name}</span>
+                <div className="flex min-w-0 items-center justify-between gap-2">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="shrink-0 text-2xl">{cat.icon}</span>
+                    <span className="min-w-0 break-words font-medium text-slate-900 dark:text-slate-100">{cat.name}</span>
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex shrink-0 items-center gap-2">
                     <button
                       onClick={() => openEditModal(cat)}
+                      aria-label={`${t.categories.edit} ${cat.name}`}
                       className="text-slate-400 hover:text-primary-600 p-1"
                     >
                       <Pencil size={16} />
@@ -231,52 +189,9 @@ export default function CategoriesManager({
         
       )}
 
-      {editingCategory && (
-        <Modal
-          open={!!editingCategory}
-          onClose={() => setEditingCategory(null)}
-          title={t.categories.edit}
-        >
-          <div className="space-y-4">
-            <Input
-              label={t.categories.categoryName}
-              value={editName}
-              onChange={(e) => setEditName(e.target.value)}
-            />
-
-            <div>
-              <p className="text-xs font-medium text-slate-600 dark:text-slate-400 mb-1.5">Icon</p>
-              <div className="grid grid-cols-8 gap-2">
-                {TITLE_ICONS.map((icon) => (
-                  <button
-                    key={icon}
-                    type="button"
-                    onClick={() => setEditIcon(icon)}
-                    className={`w-9 h-9 rounded-lg flex items-center justify-center text-lg transition ${
-                      editIcon === icon
-                        ? "bg-primary-600 ring-2 ring-primary-600 ring-offset-1 ring-offset-white dark:ring-offset-slate-900"
-                        : "bg-slate-100 dark:bg-slate-700 hover:bg-slate-200 dark:hover:bg-slate-600"
-                    }`}
-                  >
-                    {icon}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {error && <p className="text-sm text-red-600">{error}</p>}
-
-            <div className="flex gap-2">
-              <Button onClick={handleSaveEdit} disabled={loading || !editName.trim()}>
-                {t.categories.saveChanges}
-              </Button>
-              <Button variant="secondary" onClick={() => setEditingCategory(null)} disabled={loading}>
-                {t.categories.cancel}
-              </Button>
-            </div>
-          </div>
-        </Modal>
-      )}
+      {editingCategory && <CategoryEditorDialog editing name={editName} icon={editIcon} busy={loading} error={error}
+        onName={setEditName} onIcon={setEditIcon} onSave={() => void handleSaveEdit()}
+        onClose={() => setEditingCategory(null)} />}
     </div>
   );
 }

@@ -5,6 +5,9 @@ import { getUserSettings } from "@/services/userSettings";
 import { translations, Locale } from "@/lib/i18n/translations";
 import { cookies } from "next/headers";
 import CreditCardsManager from "@/components/credit-cards/CreditCardsManager";
+import AccountReconciliation from "@/components/credit-cards/AccountReconciliation";
+import { getTransactions } from "@/services/transactions";
+import { getReconciliationAccounts } from "@/services/accountBalances";
 
 async function getServerLocale(): Promise<Locale> {
   const cookieStore = await cookies();
@@ -17,9 +20,13 @@ export default async function CreditCardsPage() {
   const supabase = await createClient();
   const locale = await getServerLocale();
   const t = translations[locale];
-  const settings = await getUserSettings(supabase, user.id);
+  const [settings, transactions, cards] = await Promise.all([
+    getUserSettings(supabase, user.id),
+    getTransactions(supabase),
+    getCardsWithBalance(supabase),
+  ]);
   const currency = settings?.currency ?? "THB";
-  const cards = await getCardsWithBalance(supabase);
+  const accounts = getReconciliationAccounts(user.id, transactions, cards);
 
   return (
     <div className="space-y-8">
@@ -29,7 +36,8 @@ export default async function CreditCardsPage() {
         </h1>
         <p className="text-sm text-slate-500 dark:text-slate-400">{t.creditCards.subtitle}</p>
       </div>
-      <CreditCardsManager initialCards={cards} userId={user.id} currency={currency} />
+      <AccountReconciliation accounts={accounts} currency={currency} locale={locale} />
+      <CreditCardsManager initialCards={cards} currency={currency} />
     </div>
   );
 }

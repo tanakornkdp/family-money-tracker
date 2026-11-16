@@ -38,12 +38,14 @@ export async function createCreditCard(
 export async function updateCreditCard(
   supabase: SupabaseClient,
   cardId: string,
+  userId: string,
   input: Partial<CreditCardInput>
 ): Promise<CreditCard> {
   const { data, error } = await supabase
     .from("credit_cards")
     .update(input)
     .eq("id", cardId)
+    .eq("user_id", userId)
     .select()
     .single();
 
@@ -61,15 +63,19 @@ export async function deleteCreditCard(
 
 export async function getCardBalances(
   supabase: SupabaseClient,
-  cards: CreditCard[]
+  cards: CreditCard[],
+  excludeTransactionId?: string,
 ): Promise<Record<string, number>> {
   if (cards.length === 0) return {};
 
   const cardIds = cards.map((c) => c.id);
-  const { data, error } = await supabase
+  let query = supabase
     .from("transactions")
     .select("card_id, amount, type, category")
     .in("card_id", cardIds);
+  if (excludeTransactionId) query = query.neq("id", excludeTransactionId);
+
+  const { data, error } = await query;
 
   if (error) throw new Error(error.message);
 
@@ -85,7 +91,7 @@ export async function getCardBalances(
       if (tx.category === "เติมเงินวอลเล็ต") {
         // เติมเงิน = เพิ่มยอดในบัตร
         balances[tx.card_id] = (balances[tx.card_id] ?? 0) + Number(tx.amount);
-      } else {
+      } else if (tx.type === "expense") {
         // ใช้จ่ายผ่านบัตร = ลดยอดในบัตร
         balances[tx.card_id] = (balances[tx.card_id] ?? 0) - Number(tx.amount);
       }
@@ -103,21 +109,18 @@ export async function getCardBalances(
 }
 
 export async function getCardsWithBalance(
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  excludeTransactionId?: string,
 ): Promise<(CreditCard & { balance: number; available: number })[]> {
   const cards = await getCreditCards(supabase);
-  const results = await Promise.all(
-    cards.map(async (card) => {
-      const balances = await getCardBalances(supabase, [card]);
-      const balance = balances[card.id] ?? 0;
-      return {
-        ...card,
-        balance: balance,
-        // debit: available = ยอดเงินในบัตร, credit: available = วงเงินคงเหลือ
-        available: card.card_type === "debit" ? balance : card.credit_limit - balance,
-      };
-    })
-  );
-
-  return results;
+  const balances = await getCardBalances(supabase, cards, excludeTransactionId);
+  return cards.map((card) => {
+    const balance = balances[card.id] ?? 0;
+    return {
+      ...card,
+      balance,
+      // debit: available = ยอดเงินในบัตร, credit: available = วงเงินคงเหลือ
+      available: card.card_type === "debit" ? balance : card.credit_limit - balance,
+    };
+  });
 }

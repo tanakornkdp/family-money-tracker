@@ -1,5 +1,7 @@
 "use client";
 
+import { toDateInputValue } from "@/lib/utils/dateHelpers";
+
 import { DailyBudgetStatus } from "@/types";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -58,10 +60,7 @@ export default function BudgetCalendarGrid({
           const dateStr = `${year}-${String(month + 1).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
           const status = statuses.get(dateStr);
           const isSelected = selectedDate === dateStr;
-          const today = new Date();
-          const offset = today.getTimezoneOffset();
-          const localToday = new Date(today.getTime() - (offset * 60 * 1000));
-          const todayStr = localToday.toISOString().split("T")[0];
+          const todayStr = toDateInputValue();
           const isToday = dateStr === todayStr;
 
           return (

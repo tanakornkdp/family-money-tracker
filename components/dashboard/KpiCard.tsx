@@ -1,4 +1,5 @@
 import { translations } from "@/lib/i18n/translations";
+import CountUp from "@/components/ui/CountUp";
 import {
   TrendingUp,
   TrendingDown,
@@ -97,7 +98,7 @@ export default function KpiCard({
   };
 
   return (
-    <div className="p-6 rounded-2xl shadow-sm border bg-white dark:bg-slate-800/80 border-slate-100 dark:border-slate-700/50">
+    <div className="dashboard-reveal p-6 rounded-2xl shadow-sm border bg-white dark:bg-slate-800/80 border-slate-100 dark:border-slate-700/50">
       <div className="flex justify-between items-start">
         <div className={`p-3 rounded-xl ${config.iconBg}`}>
           <Icon className={`w-6 h-6 ${config.iconColor}`} />
@@ -109,7 +110,7 @@ export default function KpiCard({
       <div className="mt-4">
         <p className="text-xs text-slate-500 dark:text-slate-400">{titles[titleKey]}</p>
         <h3 className={`text-2xl font-bold mt-1 ${config.valueColor}`}>
-          {value}
+          <CountUp value={value} />
         </h3>
       </div>
     </div>

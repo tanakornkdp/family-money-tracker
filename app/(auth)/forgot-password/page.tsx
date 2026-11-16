@@ -1,11 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
+
+function ResetLinkNotice() {
+  const searchParams = useSearchParams();
+  const { locale } = useLanguage();
+  if (searchParams.get("error") !== "reset_link_invalid") return null;
+  return (
+    <p role="alert" className="mt-4 rounded-xl border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+      {locale === "th"
+        ? "ลิงก์นี้ใช้ไม่ได้หรือหมดอายุแล้ว กรุณาขอลิงก์ใหม่และเปิดอีเมลฉบับล่าสุดในเบราว์เซอร์ที่ใช้ขอลิงก์"
+        : "This link is invalid or expired. Request a new one and open the latest email in the browser you used to request it."}
+    </p>
+  );
+}
 
 export default function ForgotPasswordPage() {
   const supabase = createClient();
@@ -46,6 +60,9 @@ export default function ForgotPasswordPage() {
         <p className="mt-1 text-sm text-slate-500">
           {t.auth.forgotPasswordDesc}
         </p>
+        <Suspense fallback={null}>
+          <ResetLinkNotice />
+        </Suspense>
 
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
           <Input

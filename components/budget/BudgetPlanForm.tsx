@@ -1,37 +1,57 @@
 "use client";
 
+import { toDateInputValue } from "@/lib/utils/dateHelpers";
+
 import { useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { createBudgetPlan } from "@/services/budgetPlans";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { BudgetPlan, Household } from "@/types";
+import type { TravelTrip } from "@/types";
+import { useEffect } from "react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import Card from "@/components/ui/Card";
+import BudgetAlertThresholdPicker from "./BudgetAlertThresholdPicker";
 
 export default function BudgetPlanForm({
   userId,
   households,
-  initialHouseholdId = "",
   onCreated,
   onCancel,
 }: {
   userId: string;
   households: Household[];
-  initialHouseholdId?: string;
   onCreated: (plan: BudgetPlan) => void;
   onCancel: () => void;
 }) {
-  const supabase = createClient();
+  const [supabase] = useState(() => createClient());
   const { t } = useLanguage();
 
   const [name, setName] = useState("");
   const [totalAmount, setTotalAmount] = useState("");
-  const [startDate, setStartDate] = useState(() => new Date().toISOString().split("T")[0]);
+  const [startDate, setStartDate] = useState(() => toDateInputValue());
   const [endDate, setEndDate] = useState("");
-  const [householdId, setHouseholdId] = useState(initialHouseholdId);
+  const [householdId, setHouseholdId] = useState("");
+  const [category, setCategory] = useState("");
+  const [tripId, setTripId] = useState("");
+  const [alertThresholds, setAlertThresholds] = useState<number[]>([25, 50, 75]);
+  const [categories, setCategories] = useState<string[]>([]);
+  const [trips, setTrips] = useState<TravelTrip[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadOptions = async () => {
+      const [categoryResult, tripResult] = await Promise.all([
+        supabase.from("categories").select("name").neq("type", "income").order("name"),
+        supabase.from("travel_trips").select("id,name,destination,start_date,end_date,currency,user_id,time_zone,activation_mode,is_active,exchange_rate_to_thb,created_at,updated_at").eq("user_id", userId).order("start_date", { ascending: false }),
+      ]);
+      if (!categoryResult.error) setCategories((categoryResult.data ?? []).map((row) => row.name));
+      if (!tripResult.error) setTrips((tripResult.data ?? []) as TravelTrip[]);
+    };
+    void loadOptions();
+  }, [supabase, userId]);
 
   const handleCreate = async () => {
     if (!name.trim() || !totalAmount || !startDate || !endDate) return;
@@ -50,6 +70,10 @@ export default function BudgetPlanForm({
         start_date: startDate,
         end_date: endDate,
         household_id: householdId || null,
+        category: category || null,
+        travel_trip_id: tripId || null,
+        alert_threshold: alertThresholds[0] ?? 80,
+        alert_thresholds: alertThresholds,
       });
       onCreated(plan);
     } catch (err) {
@@ -76,6 +100,23 @@ export default function BudgetPlanForm({
           value={totalAmount}
           onChange={(e) => setTotalAmount(e.target.value)}
         />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
+            หมวดหมู่ (ไม่เลือก = งบรวม)
+            <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
+              <option value="">งบรวม</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
+            ทริป (ไม่เลือก = ไม่ผูกทริป)
+            <select value={tripId} onChange={(e) => setTripId(e.target.value)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
+              <option value="">ทุกทริป / ปกติ</option>{trips.map((trip) => <option key={trip.id} value={trip.id}>{trip.name} · {trip.destination}</option>)}
+            </select>
+          </label>
+        </div>
+
+        <BudgetAlertThresholdPicker idPrefix="budget-create" value={alertThresholds} onChange={setAlertThresholds} />
 
         <div className="grid grid-cols-2 gap-4">
           <Input

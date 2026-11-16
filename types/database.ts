@@ -42,6 +42,7 @@ export interface UserSettings {
   avatar_url: string | null;
   full_name: string | null;
   updated_at: string;
+  lock_timeout_minutes?: number;
 }
 
 export interface Household {
@@ -55,7 +56,7 @@ export interface HouseholdMember {
   id: string;
   household_id: string;
   user_id: string;
-  role: "owner" | "member";
+  role: "owner" | "admin" | "member";
   display_name: string | null;
   joined_at: string;
 }
@@ -81,7 +82,34 @@ export interface Transaction {
   date: string;
   payment_method: PaymentMethod;
   card_id: string | null;
+  travel_trip_id?: string | null;
+  travel_amount_thb?: number | null;
+  travel_original_amount?: number | null;
+  travel_original_currency?: string | null;
+  travel_exchange_rate_to_thb?: number | null;
+  travel_exchange_rate_date?: string | null;
+  recurring_bill_id?: string | null;
+  recurring_occurrence_date?: string | null;
   created_at: string;
+}
+
+export type TravelActivationMode = "manual" | "scheduled";
+
+export interface TravelTrip {
+  settlement?: import("@/services/tripSettlement").TripSettlement;
+  id: string;
+  user_id: string;
+  name: string;
+  destination: string;
+  currency: string;
+  start_date: string;
+  end_date: string;
+  time_zone: string;
+  activation_mode: TravelActivationMode;
+  is_active: boolean;
+  exchange_rate_to_thb: number;
+  created_at: string;
+  updated_at: string;
 }
 
 export type GoalType = "savings" | "travel" | "investment" | "emergency_fund" | "debt_payoff" | "other";
@@ -129,6 +157,10 @@ export interface BudgetPlan {
   total_amount: number;
   start_date: string;
   end_date: string;
+  category?: string | null;
+  travel_trip_id?: string | null;
+  alert_threshold?: number;
+  alert_thresholds?: number[];
   created_at: string;
 }
 
@@ -156,4 +188,4 @@ export interface CreditCard {
   created_at: string;
 }
 
-export type PaymentMethod = "cash" | "credit_card" | "debit_card";
+export type PaymentMethod = "cash" | "credit_card" | "debit_card" | "bank_transfer";
