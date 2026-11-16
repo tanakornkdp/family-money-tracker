@@ -1,5 +1,6 @@
 import MobileNavigation from "@/components/mobile/MobileNavigation";
 import MobilePreferencesControls from "@/components/mobile/MobilePreferencesControls";
+import MobileAccountControls from "@/components/mobile/MobileAccountControls";
 import { requireUser } from "@/lib/auth/getUser";
 import { createClient } from "@/lib/supabase/server";
 import { getUserSettings } from "@/services/userSettings";
@@ -24,6 +25,7 @@ export default async function MobileLayout({ children }: { children: React.React
         <div className="mobile-app-toolbar mb-3 flex min-h-10 items-center justify-end gap-2">
           <NotificationCenter userId={user.id} compact />
           <MobilePreferencesControls userId={user.id} />
+          <MobileAccountControls avatarUrl={settings?.avatar_url} name={settings?.full_name?.trim() || user.email?.split("@")[0] || "User"} />
         </div>
         <div className="mobile-app-page [&_h1]:text-2xl [&_h1]:font-bold [&_h2]:text-lg [&_input]:min-h-12 [&_button]:touch-manipulation">
           {children}
