@@ -8,6 +8,7 @@ import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
 import MobilePreferencesControls from "@/components/mobile/MobilePreferencesControls";
+import { isStandaloneApp } from "@/lib/utils/standalone";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -46,11 +47,13 @@ export default function LoginPage() {
       await fetch("/api/security/sign-in-activity", { method: "POST", cache: "no-store" }).catch(() => undefined);
 
       const requestedNext = new URLSearchParams(window.location.search).get("next");
-      let destination = "/dashboard";
+      const standalone = isStandaloneApp();
+      let destination = standalone ? "/mobile/dashboard" : "/dashboard";
       if (requestedNext) {
         try {
           const nextUrl = new URL(requestedNext, window.location.origin);
-          if (nextUrl.origin === window.location.origin) {
+          if (nextUrl.origin === window.location.origin &&
+              !(standalone && ["/", "/dashboard", "/desktop"].includes(nextUrl.pathname))) {
             destination = `${nextUrl.pathname}${nextUrl.search}${nextUrl.hash}`;
           }
         } catch {
