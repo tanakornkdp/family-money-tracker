@@ -3,6 +3,8 @@
 import { useEffect, useRef } from "react";
 import { createCurrencyFormatter, formatCurrency } from "@/lib/utils/formatCurrency";
 
+const countDurationMs = 1100;
+
 export default function AnimatedCurrency({ amount, currency }: { amount: number; currency: string }) {
   const label = formatCurrency(amount, currency);
   const visual = useRef<HTMLSpanElement>(null);
@@ -20,8 +22,9 @@ export default function AnimatedCurrency({ amount, currency }: { amount: number;
       const startedAt = performance.now();
       element.textContent = format.format(0);
       const tick = (now: number) => {
-        const progress = Math.min(1, (now - startedAt) / 520);
-        element.textContent = progress === 1 ? label : format.format(amount * (1 - (1 - progress) ** 3));
+        const progress = Math.min(1, (now - startedAt) / countDurationMs);
+        const eased = progress * progress * (3 - 2 * progress);
+        element.textContent = progress === 1 ? label : format.format(amount * eased);
         if (progress < 1) frame = requestAnimationFrame(tick);
       };
       frame = requestAnimationFrame(tick);
