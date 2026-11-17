@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { LogOut } from "lucide-react";
 import { useState } from "react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
@@ -30,11 +31,12 @@ export default function MobileAccountControls({ avatarUrl, name }: {
   }
 
   return <div className="relative flex shrink-0 items-center gap-1.5">
-    <div role="img" aria-label={`${profileLabel}: ${name}`} className="grid size-9 shrink-0 place-items-center overflow-hidden rounded-full border border-mobile-border bg-mobile-surface-muted text-sm font-semibold text-mobile-ink">
+    <Link href="/mobile/settings?section=profile" aria-label={`${profileLabel}: ${name}`}
+      className="grid size-11 shrink-0 place-items-center overflow-hidden rounded-full border border-mobile-border bg-mobile-surface-muted text-sm font-semibold text-mobile-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">
       {avatarUrl && failedAvatar !== avatarUrl
         ? <Image src={avatarUrl} alt="" width={36} height={36} unoptimized className="size-9 object-cover" onError={() => setFailedAvatar(avatarUrl)} />
         : <span aria-hidden="true">{Array.from(name)[0]?.toUpperCase()}</span>}
-    </div>
+    </Link>
     <button type="button" aria-label={t.common.logout} title={t.common.logout} onClick={logout} disabled={busy}
       className="grid size-11 shrink-0 place-items-center rounded-full border border-mobile-border bg-mobile-surface text-mobile-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 disabled:opacity-50">
       <LogOut size={18} aria-hidden="true" />
