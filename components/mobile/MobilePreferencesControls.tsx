@@ -8,7 +8,7 @@ import { useTheme } from "@/components/providers/ThemeProvider";
 import { upsertUserSettings } from "@/services/userSettings";
 import type { AppLanguage, AppTheme } from "@/types";
 
-export default function MobilePreferencesControls({ userId }: { userId?: string }) {
+export function useMobilePreferences(userId?: string) {
   const { locale, setLocale } = useLanguage();
   const { isDark, setTheme } = useTheme();
   const [saving, setSaving] = useState<"language" | "theme" | null>(null);
@@ -44,6 +44,11 @@ export default function MobilePreferencesControls({ userId }: { userId?: string 
     }
   }
 
+  return { locale, isDark, saving, error, changeLanguage, changeTheme };
+}
+
+export default function MobilePreferencesControls({ userId }: { userId?: string }) {
+  const { locale, isDark, saving, error, changeLanguage, changeTheme } = useMobilePreferences(userId);
   return (
     <div className="flex min-h-10 items-center justify-end gap-2" aria-label={locale === "th" ? "การแสดงผล" : "Appearance preferences"}>
       {error && <span className="sr-only" role="status" aria-live="polite">{error}</span>}

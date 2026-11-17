@@ -13,7 +13,12 @@ import { useLanguage } from "@/lib/i18n/LanguageProvider";
 type Notice = { id: string; kind: "budget" | "bill" | "duplicate" | "receipt" | "transfer" | "invite"; dedupe_key: string; title: string; detail: string; href: string; created_at: string; read_at: string | null };
 const daysFromToday = (days: number) => { const date = new Date(); date.setDate(date.getDate() + days); return toDateInputValue(date); };
 
-export default function NotificationCenter({ userId, compact = false }: { userId: string; compact?: boolean }) {
+export default function NotificationCenter({ userId, compact = false, expanded, onExpandedChange }: {
+  userId: string;
+  compact?: boolean;
+  expanded?: boolean;
+  onExpandedChange?: (open: boolean) => void;
+}) {
   const { locale, t } = useLanguage();
   const copy = t.mobile.notifications;
   const [supabase] = useState(() => createClient());
@@ -25,7 +30,9 @@ export default function NotificationCenter({ userId, compact = false }: { userId
   const [selected, setSelected] = useState<string | null>(null);
   const [working, setWorking] = useState(false);
   const [actionError, setActionError] = useState("");
-  const [open, setOpen] = useState(false);
+  const [internalOpen, setInternalOpen] = useState(false);
+  const open = expanded ?? internalOpen;
+  const setOpen = onExpandedChange ?? setInternalOpen;
   const [available, setAvailable] = useState(true);
   const unread = storedUnread + pending.length;
   const notices = [...pending, ...items.filter(item => !item.read_at)];
@@ -129,8 +136,8 @@ export default function NotificationCenter({ userId, compact = false }: { userId
   };
 
   return <div className="relative">
-    <button type="button" onClick={() => { if (!open) void refresh(); setOpen(!open); }} aria-label={`${copy.title}${unread ? ` ${copy.unreadLabel.replace("{count}", String(unread))}` : ""}`} aria-expanded={open} className={`${compact ? "h-10 w-10" : "h-9 w-9"} relative inline-flex items-center justify-center rounded-xl border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300`}>
-      <Bell size={18} aria-hidden="true" />{unread > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white">{unread > 9 ? "9+" : unread}</span>}
+    <button type="button" onClick={() => { if (!open) void refresh(); setOpen(!open); }} aria-label={`${copy.title}${unread ? ` ${copy.unreadLabel.replace("{count}", String(unread))}` : ""}`} aria-expanded={open} className={`${compact ? "size-10 rounded-full" : "size-9 rounded-xl"} relative inline-flex items-center justify-center border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300`}>
+      <Bell size={18} aria-hidden="true" />{unread > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white ring-2 ring-mobile-page">{unread > 9 ? "9+" : unread}</span>}
     </button>
     {open && <div role="dialog" aria-label={copy.title} className={`${mobile ? "fixed inset-x-3 top-[calc(env(safe-area-inset-top)_+_4.25rem)] max-h-[calc(100dvh_-_6rem_-_env(safe-area-inset-top))] overflow-y-auto overscroll-contain" : "absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden"} z-[70] rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900`}>
       <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800"><p className="font-semibold text-slate-900 dark:text-white">{copy.title} {unread > 0 && <span className="text-xs font-normal text-slate-500">· {copy.newCount.replace("{count}", String(unread))}</span>}</p><button onClick={() => setOpen(false)} aria-label={copy.close} className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><X size={16}/></button></div>
