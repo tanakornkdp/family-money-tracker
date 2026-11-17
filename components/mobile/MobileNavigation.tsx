@@ -23,6 +23,7 @@ import {
   Bot,
   Home,
   ShieldCheck,
+  Settings,
 } from "lucide-react";
 import TransactionForm from "@/components/transactions/TransactionForm";
 import CameraEntry from "@/components/mobile/CameraEntry";
@@ -35,6 +36,7 @@ export default function MobileNavigation() {
   const { locale, t } = useLanguage();
   const itemClass = "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 text-[10px] font-medium text-mobile-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600";
   const extras = [
+    { href: "/mobile/settings", label: t.nav.settings, icon: Settings },
     { href: "/mobile/transactions", label: t.nav.transactions, icon: Receipt },
     { href: "/mobile/travel", label: t.mobile.travelLabel, icon: Plane },
     { href: "/mobile/categories", label: t.nav.categories, icon: Tag },
