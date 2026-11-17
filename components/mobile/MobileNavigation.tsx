@@ -35,6 +35,7 @@ type Panel = "wallet" | "menu" | "add" | "manual" | "voice" | "camera" | "upload
 
 export default function MobileNavigation() {
   const [panel, setPanel] = useState<Panel>(null);
+  const emphasized = panel === "wallet" || panel === "menu";
   const assistantOpen = usePathname() === "/mobile/assistant";
   const { locale, t } = useLanguage();
   const itemClass = "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 text-[10px] font-medium text-mobile-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600";
@@ -174,8 +175,8 @@ export default function MobileNavigation() {
         <button type="button" onClick={(event) => openPanel("menu", event.currentTarget)} aria-haspopup="dialog" aria-expanded={panel === "menu"} className={itemClass}><Menu size={20} />{t.mobile.menu}</button>
       </nav>
       {panel && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-3 motion-safe:transition-colors motion-safe:duration-[460ms] ${closing ? "bg-transparent" : "bg-slate-950/35"}`} onClick={(event) => { if (event.target === event.currentTarget) closePanel(); }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="mobile-sheet-title" data-state={closing ? "closing" : "open"} tabIndex={-1} ref={dialogRef} className="max-h-[min(82dvh,calc(100dvh-2rem))] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-mobile-surface p-5 text-mobile-ink outline-none data-[state=closing]:pointer-events-none">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-3 motion-safe:transition-colors motion-safe:duration-[460ms] ${closing ? "bg-transparent" : emphasized ? "bg-slate-950/65" : "bg-slate-950/35"}`} onClick={(event) => { if (event.target === event.currentTarget) closePanel(); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="mobile-sheet-title" data-state={closing ? "closing" : "open"} tabIndex={-1} ref={dialogRef} className={`max-h-[min(82dvh,calc(100dvh-2rem))] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl p-5 text-mobile-ink outline-none data-[state=closing]:pointer-events-none ${emphasized ? "bg-slate-100 shadow-xl dark:bg-slate-950" : "bg-mobile-surface"}`}>
             <div className="mb-4 flex items-center justify-between">
               <div><div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-slate-300" /><h2 id="mobile-sheet-title" className="text-lg font-bold">{title}</h2></div>
               <button type="button" ref={closeButtonRef} aria-label={t.mobile.close} onClick={closePanel} className="rounded-full p-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"><X /></button>
@@ -203,7 +204,7 @@ export default function MobileNavigation() {
                           ? [{ href: "/mobile/wallet", label: t.mobile.walletPage.title, icon: Wallet }, { href: "/mobile/budget", label: t.nav.budget, icon: CalendarDays }, { href: "/mobile/credit-cards", label: t.nav.creditCards, icon: CreditCard }]
                           : extras
                         ).map(({ href, label, icon: Icon }) => (
-                          <Link key={href} href={href} onClick={() => setPanel(null)} className="flex min-h-14 items-center gap-3 rounded-2xl bg-mobile-surface-muted p-4 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"><Icon size={20} />{label}<span className="ml-auto">›</span></Link>
+                          <Link key={href} href={href} onClick={() => setPanel(null)} className="flex min-h-14 items-center gap-3 rounded-2xl bg-mobile-surface p-4 hover:bg-white dark:bg-mobile-surface-muted dark:hover:bg-slate-700 font-semibold focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"><Icon size={20} />{label}<span className="ml-auto">›</span></Link>
                         ))}
                       </div>
                     )}
