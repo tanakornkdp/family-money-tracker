@@ -5,7 +5,8 @@ import { usePathname, useRouter } from "next/navigation";
 import { animateDockWindow } from "@/lib/utils/dockWindowMotion";
 
 export default function MobileRouteTemplate({ children }: { children: ReactNode }) {
-  const assistant = usePathname() === "/mobile/assistant";
+  const pathname = usePathname();
+  const assistant = pathname === "/mobile/assistant";
   const router = useRouter();
   const pageRef = useRef<HTMLDivElement>(null);
 
@@ -27,6 +28,7 @@ export default function MobileRouteTemplate({ children }: { children: ReactNode 
       if (!link || link.hasAttribute("download") || (link.target && link.target !== "_self")) return;
       const target = new URL(link.href);
       if (target.origin !== location.origin || !target.pathname.startsWith("/mobile/") || target.pathname === "/mobile/assistant") return;
+      if (link.hasAttribute("data-mobile-home")) return;
       if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
       if (leaving) { event.preventDefault(); return; }
 
@@ -50,5 +52,5 @@ export default function MobileRouteTemplate({ children }: { children: ReactNode 
     };
   }, [assistant, router]);
 
-  return <div ref={pageRef} className={assistant ? undefined : "mobile-route-enter"} data-assistant-page={assistant || undefined}>{children}</div>;
+  return <div ref={pageRef} className={assistant || pathname === "/mobile/dashboard" ? undefined : "mobile-route-enter"} data-assistant-page={assistant || undefined}>{children}</div>;
 }

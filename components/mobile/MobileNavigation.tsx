@@ -167,7 +167,7 @@ export default function MobileNavigation() {
   return (
     <>
       <nav aria-label={t.mobile.mainNavigation} className="mobile-app-nav fixed inset-x-2 z-40 mx-auto flex max-w-lg items-center justify-between rounded-full border border-mobile-border bg-mobile-surface/95 px-2 py-2 shadow-xl backdrop-blur-xl">
-        <Link href="/mobile/dashboard" className={itemClass}><Home size={20} />{t.mobile.home}</Link>
+        <Link href="/mobile/dashboard" prefetch data-mobile-home className={itemClass}><Home size={20} />{t.mobile.home}</Link>
         <button type="button" onClick={(event) => openPanel("wallet", event.currentTarget)} aria-haspopup="dialog" aria-expanded={panel === "wallet"} className={itemClass}><Wallet size={20} />{t.mobile.wallet}</button>
         <button type="button" data-mobile-add onClick={(event) => openPanel("add", event.currentTarget)} aria-label={t.transactions.addTransaction} aria-haspopup="dialog" aria-expanded={panel === "add" || panel === "manual" || panel === "voice" || panel === "camera" || panel === "upload"} className="-mt-7 mx-1 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary-700 text-white shadow-lg ring-4 ring-mobile-page"><Plus size={28} /></button>
         <Link data-assistant-dock href={assistantOpen ? "/mobile/dashboard" : "/mobile/assistant"}
