@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   CalendarDays,
   BarChart3,
@@ -28,6 +28,7 @@ import {
 import TransactionForm from "@/components/transactions/TransactionForm";
 import CameraEntry from "@/components/mobile/CameraEntry";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { animateDockWindow } from "@/lib/utils/dockWindowMotion";
 
 type Panel = "wallet" | "menu" | "add" | "manual" | "voice" | "camera" | "upload" | null;
 
@@ -58,11 +59,58 @@ export default function MobileNavigation() {
   const closeButtonRef = useRef<HTMLButtonElement>(null);
   const returnFocusRef = useRef<HTMLElement | null>(null);
   const wasOpenRef = useRef(false);
+  const motion = useRef<Animation>(undefined);
+  const entering = useRef(false);
+  const dismissing = useRef(false);
+  const [closing, setClosing] = useState(false);
 
   const openPanel = (next: Exclude<Panel, null>, trigger: HTMLElement) => {
-    if (!panel) returnFocusRef.current = trigger;
+    if (!panel) {
+      returnFocusRef.current = trigger;
+      entering.current = true;
+    }
     setPanel(next);
   };
+
+  useLayoutEffect(() => {
+    if (!panel || !entering.current) return;
+    entering.current = false;
+    const sheet = dialogRef.current;
+    const trigger = returnFocusRef.current;
+    if (!sheet || !trigger) return;
+    const animation = animateDockWindow(sheet, trigger, true);
+    motion.current = animation;
+    if (animation) void animation.finished.then(() => {
+      if (!dismissing.current) animation.cancel();
+    }, () => undefined);
+  }, [panel]);
+
+  useEffect(() => () => motion.current?.cancel(), []);
+
+  const closePanel = useCallback(() => {
+    if (dismissing.current) return;
+    dismissing.current = true;
+    const finish = () => {
+      dismissing.current = false;
+      setPanel(null);
+      setClosing(false);
+    };
+    const sheet = dialogRef.current;
+    const trigger = returnFocusRef.current;
+    const existing = motion.current;
+    let animation: Animation | undefined;
+    if (existing?.playState === "running" && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      existing.reverse();
+      animation = existing;
+    } else {
+      existing?.cancel();
+      animation = sheet && trigger ? animateDockWindow(sheet, trigger, false) : undefined;
+    }
+    if (!animation) { finish(); return; }
+    motion.current = animation;
+    setClosing(true);
+    void animation.finished.then(finish, finish);
+  }, []);
 
   useEffect(() => {
     if (panel) {
@@ -85,7 +133,7 @@ export default function MobileNavigation() {
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        setPanel(null);
+        closePanel();
         return;
       }
       if (event.key !== "Tab") return;
@@ -111,7 +159,7 @@ export default function MobileNavigation() {
       document.body.style.overflow = previousOverflow;
       document.removeEventListener("keydown", onKeyDown);
     };
-  }, [panel]);
+  }, [panel, closePanel]);
 
   return (
     <>
@@ -123,11 +171,11 @@ export default function MobileNavigation() {
         <button type="button" onClick={(event) => openPanel("menu", event.currentTarget)} aria-haspopup="dialog" aria-expanded={panel === "menu"} className={itemClass}><Menu size={20} />{t.mobile.menu}</button>
       </nav>
       {panel && (
-        <div className="mobile-sheet-backdrop fixed inset-0 z-50 flex items-end bg-slate-950/35" onClick={(event) => { if (event.target === event.currentTarget) setPanel(null); }}>
-          <section role="dialog" aria-modal="true" aria-labelledby="mobile-sheet-title" tabIndex={-1} ref={dialogRef} className="mobile-sheet-enter max-h-[88svh] w-full overflow-y-auto rounded-t-3xl bg-mobile-surface p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] text-mobile-ink outline-none">
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-3 motion-safe:transition-colors motion-safe:duration-[460ms] ${closing ? "bg-transparent" : "bg-slate-950/35"}`} onClick={(event) => { if (event.target === event.currentTarget) closePanel(); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="mobile-sheet-title" data-state={closing ? "closing" : "open"} tabIndex={-1} ref={dialogRef} className="max-h-[min(82dvh,calc(100dvh-2rem))] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl bg-mobile-surface p-5 text-mobile-ink outline-none data-[state=closing]:pointer-events-none">
             <div className="mb-4 flex items-center justify-between">
               <div><div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-slate-300" /><h2 id="mobile-sheet-title" className="text-lg font-bold">{title}</h2></div>
-              <button type="button" ref={closeButtonRef} aria-label={t.mobile.close} onClick={() => setPanel(null)} className="rounded-full p-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"><X /></button>
+              <button type="button" ref={closeButtonRef} aria-label={t.mobile.close} onClick={closePanel} className="rounded-full p-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600"><X /></button>
             </div>
             {panel === "add" ? (
               <div className="grid grid-cols-2 gap-3">
