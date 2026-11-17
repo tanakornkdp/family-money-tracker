@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   CalendarDays,
@@ -34,6 +35,7 @@ type Panel = "wallet" | "menu" | "add" | "manual" | "voice" | "camera" | "upload
 
 export default function MobileNavigation() {
   const [panel, setPanel] = useState<Panel>(null);
+  const assistantOpen = usePathname() === "/mobile/assistant";
   const { locale, t } = useLanguage();
   const itemClass = "flex min-w-0 flex-1 flex-col items-center justify-center gap-1 rounded-2xl px-1 py-1.5 text-[10px] font-medium text-mobile-ink focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600";
   const extras = [
@@ -167,7 +169,8 @@ export default function MobileNavigation() {
         <Link href="/mobile/dashboard" className={itemClass}><Home size={20} />{t.mobile.home}</Link>
         <button type="button" onClick={(event) => openPanel("wallet", event.currentTarget)} aria-haspopup="dialog" aria-expanded={panel === "wallet"} className={itemClass}><Wallet size={20} />{t.mobile.wallet}</button>
         <button type="button" data-mobile-add onClick={(event) => openPanel("add", event.currentTarget)} aria-label={t.transactions.addTransaction} aria-haspopup="dialog" aria-expanded={panel === "add" || panel === "manual" || panel === "voice" || panel === "camera" || panel === "upload"} className="-mt-7 mx-1 flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-primary-700 text-white shadow-lg ring-4 ring-mobile-page"><Plus size={28} /></button>
-        <Link href="/mobile/assistant" className={itemClass}><Bot size={20} />{t.nav.assistant}</Link>
+        <Link data-assistant-dock href={assistantOpen ? "/mobile/dashboard" : "/mobile/assistant"}
+          aria-label={assistantOpen ? `${t.mobile.close} ${t.nav.assistant}` : undefined} className={itemClass}><Bot size={20} />{t.nav.assistant}</Link>
         <button type="button" onClick={(event) => openPanel("menu", event.currentTarget)} aria-haspopup="dialog" aria-expanded={panel === "menu"} className={itemClass}><Menu size={20} />{t.mobile.menu}</button>
       </nav>
       {panel && (

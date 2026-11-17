@@ -48,6 +48,10 @@ export default function MobileAccountControls({ userId, email, avatarUrl, name }
   }, [open]);
 
   const closePopover = useCallback(() => {
+    if (open === "notifications") {
+      container.current?.querySelector<HTMLButtonElement>("[data-notification-trigger]")?.click();
+      return;
+    }
     if (open !== "profile") { setOpen(null); return; }
     if (dismissing.current) return;
     dismissing.current = true;

@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Bell, Check, CircleAlert, X } from "lucide-react";
@@ -9,6 +9,7 @@ import { getRecurringBills, getUpcomingOccurrences, type RecurringBill } from "@
 import { getReachedBudgetAlertLevels } from "@/services/budgetPlans";
 import { toDateInputValue } from "@/lib/utils/dateHelpers";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import { animateDockWindow } from "@/lib/utils/dockWindowMotion";
 
 type Notice = { id: string; kind: "budget" | "bill" | "duplicate" | "receipt" | "transfer" | "invite"; dedupe_key: string; title: string; detail: string; href: string; created_at: string; read_at: string | null };
 const daysFromToday = (days: number) => { const date = new Date(); date.setDate(date.getDate() + days); return toDateInputValue(date); };
@@ -33,6 +34,48 @@ export default function NotificationCenter({ userId, compact = false, expanded, 
   const [internalOpen, setInternalOpen] = useState(false);
   const open = expanded ?? internalOpen;
   const setOpen = onExpandedChange ?? setInternalOpen;
+  const triggerRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const motion = useRef<Animation>(undefined);
+  const closing = useRef(false);
+
+  useLayoutEffect(() => {
+    if (!mobile || !open || !panelRef.current || !triggerRef.current) return;
+    const animation = animateDockWindow(panelRef.current, triggerRef.current, true);
+    motion.current = animation;
+    if (animation) void animation.finished.then(() => {
+      if (!closing.current) animation.cancel();
+    }, () => undefined);
+    return () => {
+      motion.current?.cancel();
+      motion.current = undefined;
+      closing.current = false;
+    };
+  }, [mobile, open]);
+
+  function closeNotifications() {
+    if (closing.current) return;
+    const panel = panelRef.current;
+    const trigger = triggerRef.current;
+    if (!mobile || !panel || !trigger) { setOpen(false); return; }
+    closing.current = true;
+    const existing = motion.current;
+    let animation: Animation | undefined;
+    if (existing?.playState === "running" && !matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      animation = existing;
+      animation.reverse();
+    } else {
+      existing?.cancel();
+      animation = animateDockWindow(panel, trigger, false);
+    }
+    if (!animation) { closing.current = false; setOpen(false); return; }
+    motion.current = animation;
+    panel.inert = true;
+    trigger.focus({ preventScroll: true });
+    void animation.finished.then(() => {
+      if (motion.current === animation) setOpen(false);
+    }, () => undefined);
+  }
   const [available, setAvailable] = useState(true);
   const unread = storedUnread + pending.length;
   const notices = [...pending, ...items.filter(item => !item.read_at)];
@@ -136,11 +179,11 @@ export default function NotificationCenter({ userId, compact = false, expanded, 
   };
 
   return <div className="relative">
-    <button type="button" onClick={() => { if (!open) void refresh(); setOpen(!open); }} aria-label={`${copy.title}${unread ? ` ${copy.unreadLabel.replace("{count}", String(unread))}` : ""}`} aria-expanded={open} className={`${compact ? "size-10 rounded-full" : "size-9 rounded-xl"} relative inline-flex items-center justify-center border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300`}>
+    <button type="button" data-notification-trigger ref={triggerRef} onClick={() => { if (open) closeNotifications(); else { void refresh(); setOpen(true); } }} aria-label={`${copy.title}${unread ? ` ${copy.unreadLabel.replace("{count}", String(unread))}` : ""}`} aria-expanded={open} className={`${compact ? "size-10 rounded-full" : "size-9 rounded-xl"} relative inline-flex items-center justify-center border border-slate-200 bg-white text-slate-600 shadow-sm hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-indigo-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300`}>
       <Bell size={18} aria-hidden="true" />{unread > 0 && <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-rose-500 px-1 text-[9px] font-bold text-white ring-2 ring-mobile-page">{unread > 9 ? "9+" : unread}</span>}
     </button>
-    {open && <div role="dialog" aria-label={copy.title} className={`${mobile ? "fixed inset-x-3 top-[calc(env(safe-area-inset-top)_+_4.25rem)] max-h-[calc(100dvh_-_6rem_-_env(safe-area-inset-top))] overflow-y-auto overscroll-contain" : "absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden"} z-[70] rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900`}>
-      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800"><p className="font-semibold text-slate-900 dark:text-white">{copy.title} {unread > 0 && <span className="text-xs font-normal text-slate-500">· {copy.newCount.replace("{count}", String(unread))}</span>}</p><button onClick={() => setOpen(false)} aria-label={copy.close} className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><X size={16}/></button></div>
+    {open && <div ref={panelRef} role="dialog" aria-label={copy.title} className={`${mobile ? "fixed inset-x-3 top-[calc(env(safe-area-inset-top)_+_4.25rem)] max-h-[calc(100dvh_-_6rem_-_env(safe-area-inset-top))] overflow-y-auto overscroll-contain" : "absolute right-0 top-full mt-2 w-[min(22rem,calc(100vw-2rem))] overflow-hidden"} z-[70] rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-800 dark:bg-slate-900`}>
+      <div className="flex items-center justify-between border-b border-slate-100 px-4 py-3 dark:border-slate-800"><p className="font-semibold text-slate-900 dark:text-white">{copy.title} {unread > 0 && <span className="text-xs font-normal text-slate-500">· {copy.newCount.replace("{count}", String(unread))}</span>}</p><button type="button" onClick={closeNotifications} aria-label={copy.close} className="rounded-lg p-1 text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800"><X size={16}/></button></div>
       {!available && <p role="status" className="px-4 py-2 text-xs text-slate-500">{copy.unavailable}</p>}
       {notices.length === 0 ? <p className="p-5 text-center text-sm text-slate-500">{copy.empty}</p> : (
         <ul className={`${mobile ? "" : "max-h-[min(65vh,28rem)]"} divide-y divide-slate-100 overflow-y-auto dark:divide-slate-800`}>
