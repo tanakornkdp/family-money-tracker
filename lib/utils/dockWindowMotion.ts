@@ -15,15 +15,18 @@ export function animateDockWindow(windowElement: HTMLElement, trigger: HTMLEleme
 
   const x = icon.left + icon.width / 2 - box.left;
   const y = icon.top + icon.height / 2 - box.top;
+  const targetAbove = y < box.height / 2;
   const frames: Keyframe[] = Array.from({ length: samples + 1 }, (_, index) => {
     const time = index / samples;
     const progress = ease(opening ? 1 - time : time);
-    const top = mix(0, y - 2, progress ** 1.65);
-    const bottom = mix(box.height, y + 2, 1 - (1 - progress) ** 1.45);
+    const nearPull = 1 - (1 - progress) ** 1.45;
+    const farPull = progress ** 1.65;
+    const top = mix(0, y - 2, targetAbove ? nearPull : farPull);
+    const bottom = mix(box.height, y + 2, targetAbove ? farPull : nearPull);
     const height = Math.max(2, bottom - top);
     const edges = Array.from({ length: rows + 1 }, (_, index) => {
       const row = index / rows;
-      const pull = mix(progress ** 2.2, 1 - (1 - progress) ** 2.8, ease(row));
+      const pull = mix(progress ** 2.2, 1 - (1 - progress) ** 2.8, ease(targetAbove ? 1 - row : row));
       const center = mix(box.width / 2, x, pull);
       const halfWidth = mix(box.width / 2, 2, pull);
       return { left: center - halfWidth, right: center + halfWidth, row };
