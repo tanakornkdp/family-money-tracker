@@ -1,4 +1,5 @@
 "use client";
+import Accordion from "@/components/ui/Accordion";
 
 import { useState, useSyncExternalStore } from "react";
 import Link from "next/link";
@@ -31,8 +32,7 @@ export default function DuplicateReviewActions({ userId, groupKey, entries }: { 
   }
   const [error, setError] = useState("");
   const keepAll = selected.length === entries.length;
-  return <details open className="mt-2">
-    <summary className="cursor-pointer py-2 text-sm font-semibold text-emerald-700">{copy.compare}</summary>
+  return <Accordion defaultOpen className="mt-2" triggerClassName="cursor-pointer py-2 text-sm font-semibold text-emerald-700" title={<>{copy.compare}</>}>
     <fieldset disabled={done} className="space-y-2 text-sm">
       <legend className="mb-2">{copy.chooseToKeep}</legend>
       {entries.map(({ id, label }, index) => {
@@ -60,5 +60,5 @@ export default function DuplicateReviewActions({ userId, groupKey, entries }: { 
       {done ? copy.reviewSaved : keepAll ? copy.reviewedAll : copy.saveReview}
     </button>
     {error && <p role="alert" className="text-sm text-rose-700">{error}</p>}
-  </details>;
+  </Accordion>;
 }

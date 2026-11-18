@@ -1,4 +1,5 @@
 "use client";
+import Accordion from "@/components/ui/Accordion";
 
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -239,7 +240,7 @@ export default function ReceiptList({
             )}
           </div>
 
-          {r.ocr_text?.startsWith('[AI อ่านภาพ') && <details className="mt-3 text-sm text-slate-600 dark:text-slate-300"><summary className="cursor-pointer py-2">ตรวจผลอ่านและข้อควรทบทวน</summary><p className="whitespace-pre-wrap break-words rounded-xl bg-mobile-surface-muted p-3">{r.ocr_text}</p></details>}
+          {r.ocr_text?.startsWith('[AI อ่านภาพ') && <Accordion className="mt-3 text-sm text-slate-600 dark:text-slate-300" triggerClassName="cursor-pointer py-2" title={<>ตรวจผลอ่านและข้อควรทบทวน</>}><p className="whitespace-pre-wrap break-words rounded-xl bg-mobile-surface-muted p-3">{r.ocr_text}</p></Accordion>}
           {r.file_path && (
             <div className="mt-2 text-sm">
               {receiptImage?.id === r.id ? (

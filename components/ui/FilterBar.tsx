@@ -1,4 +1,5 @@
 "use client";
+import Accordion from "@/components/ui/Accordion";
 import { useState, type FormEventHandler, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
 import { CalendarDays, ChevronDown, Search } from "lucide-react";
 
@@ -66,13 +67,11 @@ export default function FilterBar({ locale, search, fields, advanced, count, tot
   return <form method="get" onSubmit={onSubmit} aria-label={th ? "ตัวกรองรายการ" : "Transaction filters"} className="min-w-0 space-y-4 rounded-2xl border border-mobile-border bg-mobile-surface-muted p-4">
     {search}
     <div className={filterGrid}>{fields}</div>
-    {advanced && <details className="group border-t border-mobile-border pt-2">
-      <summary className="filter-summary relative flex min-h-11 cursor-pointer items-center pr-12 text-sm font-medium">
+    {advanced && <Accordion className="group border-t border-mobile-border pt-2" triggerClassName="filter-summary relative flex min-h-11 cursor-pointer items-center pr-12 text-sm font-medium" title={<>
         {th ? "ตัวกรองเพิ่มเติม" : "More filters"}
-        <ChevronDown size={18} aria-hidden="true" className={filterChevron + " group-open:rotate-180"} />
-      </summary>
+      </>}>
       <div className={filterGrid + " pt-2"}>{advanced}</div>
-    </details>}
+    </Accordion>}
     <button type="submit" className="min-h-12 w-full rounded-[14px] bg-primary-700 px-4 text-sm font-semibold text-white focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600">{th ? "ใช้ตัวกรอง" : "Apply filters"}</button>
     <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-t border-mobile-border pt-2">
       <p role="status" className="text-sm text-mobile-muted">{th ? `แสดง ${numbers.format(count)} จาก ${numbers.format(total)} รายการ` : `Showing ${numbers.format(count)} of ${numbers.format(total)} transactions`}</p>

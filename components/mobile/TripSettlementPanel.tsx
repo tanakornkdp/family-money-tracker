@@ -1,4 +1,5 @@
 "use client";
+import Accordion from "@/components/ui/Accordion";
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -127,8 +128,7 @@ export default function TripSettlementPanel({ trip, accounts, expenses }: {
       {expenses.map(expense => {
         const split = splits[expense.id] ?? { payer: "", shares: [] };
         const change = (next: typeof split) => edit({ ...data, splits: { ...splits, [expense.id]: next } });
-        return <details key={expense.id} className="border-t border-mobile-border py-2">
-          <summary className="cursor-pointer break-words py-2">{expense.title} · {money.format(expense.cents / 100)}</summary>
+        return <Accordion key={expense.id} className="border-t border-mobile-border py-2" triggerClassName="cursor-pointer break-words py-2" title={<>{expense.title} · {money.format(expense.cents / 100)}</>}>
           <label className="block space-y-1 text-sm"><span>{th ? "ผู้จ่าย" : "Paid by"}</span>
             <select className={field} value={split.payer} onChange={event => change({ ...split, payer: event.target.value, shares: split.shares.length ? split.shares : people.map(person => person.id) })}>
               <option value="">{th ? "เลือกผู้จ่าย" : "Choose payer"}</option>
@@ -140,7 +140,7 @@ export default function TripSettlementPanel({ trip, accounts, expenses }: {
               <input type="checkbox" checked={split.shares.includes(person.id)} onChange={event => change({ ...split, shares: event.target.checked ? [...split.shares, person.id] : split.shares.filter(id => id !== person.id) })} />{person.name}
             </label>)}
           </fieldset>
-        </details>;
+        </Accordion>;
       })}
       <div className="space-y-2 border-t border-mobile-border pt-3">
         <h3 className="font-semibold">{th ? "ยอดโอนสุทธิ (บาท)" : "Net transfers (THB)"}</h3>
