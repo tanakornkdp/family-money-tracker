@@ -1,7 +1,9 @@
 "use client";
 
 import AnimatedSelect from "@/components/ui/AnimatedSelect";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
+import { ShieldCheck, SlidersHorizontal, UserRound, type LucideIcon } from "lucide-react";
+import Accordion from "@/components/ui/Accordion";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { useDarkMode } from "@/lib/hooks/useDarkMode";
@@ -18,10 +20,14 @@ export default function SettingsForm({
   initialSettings,
   userEmail,
   userId,
+  collapsible = false,
+  initialProfileOpen = false,
 }: {
   initialSettings: UserSettings | null;
   userEmail: string;
   userId: string;
+  collapsible?: boolean;
+  initialProfileOpen?: boolean;
 }) {
   const supabase = createClient();
   const router = useRouter();
@@ -103,13 +109,19 @@ export default function SettingsForm({
     }
   };
 
+  const saveControls = <div className="space-y-3 pt-4">
+    {error && <p role="alert" className="text-sm text-red-600">{error}</p>}
+    {saved && <p role="status" className="text-sm text-green-600">{t.settings.saved}</p>}
+    <Button onClick={handleSave} disabled={saving || avatarSaving} className="w-full">{saving ? t.settings.saving : t.settings.save}</Button>
+  </div>;
+
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div className={collapsible ? "space-y-5" : "grid grid-cols-1 lg:grid-cols-2 gap-6"}>
       {/* Profile */}
-      <Card>
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
+      <SettingsSection collapsible={collapsible} title={t.settings.mobileAccount} icon={UserRound} defaultOpen={initialProfileOpen}>
+        {!collapsible && <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
           {t.settings.profile}
-        </h2>
+        </h2>}
 
         <div className="flex items-center gap-4 mb-6">
           <div className="relative">
@@ -149,10 +161,11 @@ export default function SettingsForm({
             onChange={(e) => setFullName(e.target.value)}
           />
         </div>
-      </Card>
+        {collapsible && saveControls}
+      </SettingsSection>
 
-      <Card className="lg:col-span-2">
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{locale === "th" ? "ความปลอดภัยของบัญชี" : "Account security"}</h2>
+      <SettingsSection collapsible={collapsible} className="lg:col-span-2" title={locale === "th" ? "ความปลอดภัยของบัญชี" : "Account security"} icon={ShieldCheck}>
+        {!collapsible && <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{locale === "th" ? "ความปลอดภัยของบัญชี" : "Account security"}</h2>}
         <div className="mt-4 max-w-lg">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{locale === "th" ? "ล็อกเมื่อไม่มีการใช้งาน" : "Lock after inactivity"}
             <AnimatedSelect value={lockTimeoutMinutes} onChange={(event) => setLockTimeoutMinutes(Number(event.target.value))} className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-800">
@@ -165,13 +178,14 @@ export default function SettingsForm({
           <h3 className="text-sm font-semibold text-slate-800 dark:text-slate-200">{locale === "th" ? "การเข้าสู่ระบบล่าสุด" : "Recent sign-ins"}</h3>
           {activityLoading ? <p className="mt-2 text-sm text-slate-500">{locale === "th" ? "กำลังโหลด…" : "Loading…"}</p> : activity.length ? <ul className="mt-2 divide-y divide-slate-100 dark:divide-slate-800">{activity.map((event) => <li key={event.id} className="flex flex-wrap justify-between gap-2 py-2 text-sm"><span className="text-slate-700 dark:text-slate-300">{event.device_label}</span><time className="text-xs text-slate-500" dateTime={event.created_at}>{new Intl.DateTimeFormat(locale === "th" ? "th-TH" : "en-US", { dateStyle: "medium", timeStyle: "short" }).format(new Date(event.created_at))}</time></li>)}</ul> : <p className="mt-2 text-sm text-slate-500">{locale === "th" ? "ยังไม่มีประวัติการเข้าสู่ระบบในแอป" : "No sign-in activity recorded yet."}</p>}
         </div>
-      </Card>
+        {collapsible && saveControls}
+      </SettingsSection>
 
       {/* Preferences */}
-      <Card>
-        <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
+      <SettingsSection collapsible={collapsible} title={t.settings.preferences} icon={SlidersHorizontal}>
+        {!collapsible && <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
           {t.settings.preferences}
-        </h2>
+        </h2>}
 
         <div className="space-y-4">
           <div className="flex flex-col gap-1.5">
@@ -223,14 +237,23 @@ export default function SettingsForm({
             </AnimatedSelect>
           </div>
 
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          {saved && <p className="text-sm text-green-600">{t.settings.saved}</p>}
-
-          <Button onClick={handleSave} disabled={saving || avatarSaving} className="w-full">
-            {saving ? t.settings.saving : t.settings.save}
-          </Button>
+          {saveControls}
         </div>
-      </Card>
+      </SettingsSection>
     </div>
   );
+}
+
+function SettingsSection({ collapsible, title, icon: Icon, defaultOpen, className, children }: {
+  collapsible: boolean;
+  title: string;
+  icon: LucideIcon;
+  defaultOpen?: boolean;
+  className?: string;
+  children: ReactNode;
+}) {
+  if (!collapsible) return <Card className={className}>{children}</Card>;
+  return <Accordion defaultOpen={defaultOpen} className="overflow-hidden rounded-3xl bg-mobile-surface shadow-sm" triggerClassName="px-4 py-4" title={<span className="flex items-center gap-3"><span className="rounded-xl bg-mobile-surface-muted p-2.5 text-primary-600 dark:text-primary-400"><Icon size={20} aria-hidden="true" /></span><span className="min-w-0 font-bold">{title}</span></span>}>
+    <div className="p-4">{children}</div>
+  </Accordion>;
 }
