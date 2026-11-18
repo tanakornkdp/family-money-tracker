@@ -30,7 +30,8 @@ export default function SettingsForm({
   const [fullName, setFullName] = useState(initialSettings?.full_name ?? "");
   const [currency, setCurrency] = useState(initialSettings?.currency ?? "THB");
   const [avatarUrl, setAvatarUrl] = useState(initialSettings?.avatar_url ?? null);
-  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarSaving, setAvatarSaving] = useState(false);
+  const [avatarError, setAvatarError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -46,11 +47,30 @@ export default function SettingsForm({
       .finally(() => setActivityLoading(false));
   }, []);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      setAvatarFile(file);
-      setAvatarUrl(URL.createObjectURL(file));
+    e.target.value = "";
+    if (!file || avatarSaving) return;
+    setAvatarError(null);
+    if (!file.type.startsWith("image/") || file.size > 10 * 1024 * 1024) {
+      setAvatarError(locale === "th" ? "เลือกรูปภาพขนาดไม่เกิน 10 MB" : "Choose an image up to 10 MB.");
+      return;
+    }
+    setAvatarSaving(true);
+    const previousUrl = avatarUrl;
+    const preview = URL.createObjectURL(file);
+    setAvatarUrl(preview);
+    try {
+      const url = await uploadAvatar(supabase, userId, file);
+      await upsertUserSettings(supabase, userId, { avatar_url: url });
+      setAvatarUrl(url);
+      router.refresh();
+    } catch (err) {
+      setAvatarUrl(previousUrl);
+      setAvatarError(err instanceof Error ? err.message : (locale === "th" ? "บันทึกรูปไม่สำเร็จ กรุณาลองใหม่" : "Could not save photo. Please retry."));
+    } finally {
+      URL.revokeObjectURL(preview);
+      setAvatarSaving(false);
     }
   };
 
@@ -60,11 +80,7 @@ export default function SettingsForm({
     setSaved(false);
 
     try {
-      let finalAvatarUrl = avatarUrl;
-
-      if (avatarFile) {
-        finalAvatarUrl = await uploadAvatar(supabase, userId, avatarFile);
-      }
+      const finalAvatarUrl = avatarUrl;
 
       await upsertUserSettings(supabase, userId, {
         full_name: fullName,
@@ -111,16 +127,18 @@ export default function SettingsForm({
           </div>
           <label className="cursor-pointer">
             <span className="text-sm font-medium text-primary-600 hover:text-primary-700">
-              {t.settings.changeAvatar}
+              {avatarSaving ? (locale === "th" ? "กำลังบันทึกรูป…" : "Saving photo…") : t.settings.changeAvatar}
             </span>
             <input
               type="file"
               accept="image/*"
               className="hidden"
+              disabled={avatarSaving || saving}
               onChange={handleAvatarChange}
             />
           </label>
         </div>
+        <p role="status" className="mb-4 text-sm text-slate-500 dark:text-slate-400">{avatarError ? <span className="text-red-500">{avatarError}</span> : locale === "th" ? "เลือกรูปแล้วบันทึกอัตโนมัติ • ไม่เกิน 10 MB" : "Photos save automatically • Up to 10 MB"}</p>
 
         <div className="space-y-4">
           <Input label="Email" value={userEmail} disabled />
@@ -207,7 +225,7 @@ export default function SettingsForm({
           {error && <p className="text-sm text-red-600">{error}</p>}
           {saved && <p className="text-sm text-green-600">{t.settings.saved}</p>}
 
-          <Button onClick={handleSave} disabled={saving} className="w-full">
+          <Button onClick={handleSave} disabled={saving || avatarSaving} className="w-full">
             {saving ? t.settings.saving : t.settings.save}
           </Button>
         </div>

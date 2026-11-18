@@ -51,12 +51,13 @@ export async function uploadAvatar(
   userId: string,
   file: File
 ): Promise<string> {
-  const fileExt = file.name.split(".").pop();
-  const filePath = `${userId}/avatar.${fileExt}`;
+  const fileExt = file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") || "jpg";
+  // A new URL prevents browsers and the Storage CDN from displaying the old avatar.
+  const filePath = `${userId}/avatar-${crypto.randomUUID()}.${fileExt}`;
 
   const { error } = await supabase.storage
     .from("avatars")
-    .upload(filePath, file, { upsert: true });
+    .upload(filePath, file, { upsert: false, contentType: file.type || "image/jpeg" });
 
   if (error) throw new Error(error.message);
 
