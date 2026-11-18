@@ -1,5 +1,7 @@
 "use client";
 
+import CalendarDateInput from "@/components/ui/CalendarDateInput";
+import AnimatedSelect from "@/components/ui/AnimatedSelect";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
@@ -138,22 +140,22 @@ export default function MobileTravelManager({ initialTrips, activeTripIds }: { i
           </label>
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1.5 text-sm font-medium">{copy.destination}
-              <select value={destination} onChange={(event) => { const choice = destinations.find((item) => item[0] === event.target.value); if (choice) { setDestination(choice[0]); setCurrency(choice[2]); } }} className="min-h-12 w-full rounded-xl border border-mobile-border bg-mobile-surface px-3 text-base font-normal">
+              <AnimatedSelect value={destination} onChange={(event) => { const choice = destinations.find((item) => item[0] === event.target.value); if (choice) { setDestination(choice[0]); setCurrency(choice[2]); } }} className="min-h-12 w-full rounded-xl border border-mobile-border bg-mobile-surface px-3 text-base font-normal">
                 {destinations.map(([label]) => <option key={label} value={label}>{label}</option>)}
-              </select>
+              </AnimatedSelect>
             </label>
             <label className="block space-y-1.5 text-sm font-medium">{copy.currency}
-              <select value={currency} onChange={(event) => setCurrency(event.target.value)} className="min-h-12 w-full rounded-xl border border-mobile-border bg-mobile-surface px-3 text-base font-normal">
+              <AnimatedSelect value={currency} onChange={(event) => setCurrency(event.target.value)} className="min-h-12 w-full rounded-xl border border-mobile-border bg-mobile-surface px-3 text-base font-normal">
                 {currencies.map((code) => <option key={code} value={code}>{code}</option>)}
-              </select>
+              </AnimatedSelect>
             </label>
           </div>
           <div className="grid grid-cols-2 gap-3">
             <label className="block space-y-1.5 text-sm font-medium">{copy.startDate}
-              <input required type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="min-h-12 w-full rounded-xl border border-mobile-border bg-mobile-surface px-3 text-base font-normal" />
+              <CalendarDateInput required type="date" value={startDate} onChange={(event) => setStartDate(event.target.value)} className="min-h-12 w-full rounded-xl border border-mobile-border bg-mobile-surface px-3 text-base font-normal" />
             </label>
             <label className="block space-y-1.5 text-sm font-medium">{copy.endDate}
-              <input required type="date" min={startDate} value={endDate} onChange={(event) => setEndDate(event.target.value)} className="min-h-12 w-full rounded-xl border border-mobile-border bg-mobile-surface px-3 text-base font-normal" />
+              <CalendarDateInput required type="date" min={startDate} value={endDate} onChange={(event) => setEndDate(event.target.value)} className="min-h-12 w-full rounded-xl border border-mobile-border bg-mobile-surface px-3 text-base font-normal" />
             </label>
           </div>
           <fieldset className="space-y-2">

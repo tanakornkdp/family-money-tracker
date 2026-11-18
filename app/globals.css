@@ -165,6 +165,40 @@ body {
 
 .mobile-app-nav { bottom: var(--mobile-nav-bottom); }
 
+.mobile-app-toolbar {
+  position: sticky;
+  top: max(1rem, env(safe-area-inset-top));
+  z-index: 60;
+  background: var(--mobile-page);
+  padding-bottom: 12px;
+}
+.mobile-app-toolbar::after {
+  content: "";
+  position: absolute;
+  top: calc(-1 * max(1rem, env(safe-area-inset-top)));
+  bottom: 0;
+  left: calc((100% - 100vw) / 2);
+  width: 100vw;
+  z-index: -1;
+  background: var(--mobile-page);
+  border-bottom: 1px solid color-mix(in srgb, var(--mobile-border) 75%, transparent);
+  box-shadow: 0 5px 14px rgb(15 23 42 / 10%);
+  pointer-events: none;
+}
+.dark .mobile-app-toolbar::after,
+[data-theme="dark"] .mobile-app-toolbar::after {
+  box-shadow: 0 6px 18px rgb(0 0 0 / 32%), inset 0 1px 0 rgb(255 255 255 / 4%);
+}
+.mobile-app-toolbar::before {
+  content: "";
+  position: absolute;
+  inset-inline: 0;
+  bottom: 100%;
+  height: max(1rem, env(safe-area-inset-top));
+  background: var(--mobile-page);
+  pointer-events: none;
+}
+
 html:has(.mobile-assistant-screen),
 body:has(.mobile-assistant-screen) {
   overflow: hidden;
@@ -197,13 +231,13 @@ body:has(.mobile-assistant-screen) {
 }
 
 .mobile-app-shell:has(.mobile-assistant-screen) .mobile-app-toolbar {
-  height: 2.5rem;
-  min-height: 2.5rem;
+  height: 3.25rem;
+  min-height: 3.25rem;
   margin-bottom: .75rem;
 }
 
 .mobile-assistant-screen {
-  height: calc(min(100dvh, var(--assistant-visible-height, 100dvh)) - max(1rem, env(safe-area-inset-top)) - 3.25rem - var(--assistant-nav-space, 6.5rem) - env(safe-area-inset-bottom));
+  height: calc(min(100dvh, var(--assistant-visible-height, 100dvh)) - max(1rem, env(safe-area-inset-top)) - 4rem - var(--assistant-nav-space, 6.5rem) - env(safe-area-inset-bottom));
   min-height: 0;
 }
 
@@ -374,4 +408,53 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+/* Shared, anchored option surfaces stay within the visible viewport. */
+.field-popover {
+  position: fixed;
+  inset: auto;
+  margin: 0;
+  box-sizing: border-box;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 6px;
+  border: 1px solid var(--mobile-border, #cbd5e1);
+  border-radius: 14px;
+  background: var(--mobile-surface, #fff);
+  color: var(--mobile-ink, #0f172a);
+  box-shadow: 0 12px 32px #0003;
+}
+.dark .field-popover, [data-theme="dark"] .field-popover { background: var(--mobile-surface, #0f172a); color: var(--mobile-ink, #f8fafc); border-color: var(--mobile-border, #334155); }
+.calendar-step { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 10px; }
+.calendar-step:focus-visible { outline: 2px solid var(--accent, #059669); }
+.sliding-options { opacity: 1; transform: translateY(0); visibility: visible; transition: opacity 260ms ease-out, transform 260ms cubic-bezier(.2,.8,.2,1), visibility 0s; }
+.sliding-options[data-open="false"] { opacity: 0; transform: translateY(-10px); visibility: hidden; pointer-events: none; transition: opacity 180ms ease-in, transform 180ms ease-in, visibility 0s 180ms; }
+@media (prefers-reduced-motion: reduce) { .sliding-options { transition: none; } }
+.budget-plan-form { padding: 16px; }
+.budget-plan-form input:not([type="hidden"]), .budget-plan-form button[aria-haspopup] { min-height: 40px; font-size: 16px; }
+.budget-plan-form fieldset button { padding-inline: 8px; }
+.budget-plan-form fieldset > div:first-of-type { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 4px; }
+.budget-plan-form fieldset > div:first-of-type button { padding-inline: 0; min-width: 0; font-size: 12px; }
+@media (max-height: 700px) {
+  .budget-plan-form { padding: 12px; }
+  .budget-plan-form > div { gap: 8px; }
+  .budget-plan-form h2 { margin-bottom: 8px; }
+  .budget-plan-form fieldset { gap: 4px; }
+  .budget-plan-form fieldset p { font-size: 11px; }
+}
+@media (max-height: 600px) and (orientation: portrait) {
+  .budget-plan-form { padding: 10px; }
+  .budget-plan-form > div { gap: 4px; }
+  .budget-plan-form .gap-1\.5 { gap: 4px; }
+  .budget-plan-form .field-control { height: 40px; }
+  .budget-plan-form fieldset p { line-height: 1.2; }
+}
+@media (orientation: landscape) and (max-height: 500px) {
+  dialog:has(.budget-plan-form) > div > div { max-width: 800px; }
+  .budget-plan-form { padding: 10px; }
+  .budget-plan-form > div { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px 10px; }
+  .budget-plan-form fieldset { grid-row: span 2; }
+  .budget-plan-form .field-control { height: 40px; }
+  .budget-plan-form .gap-1\.5 { gap: 4px; }
+  .budget-plan-form h2 { margin-bottom: 6px; }
 }

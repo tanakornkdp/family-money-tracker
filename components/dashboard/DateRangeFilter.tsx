@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useRouter, usePathname, useSearchParams } from "next/navigation";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
+import CalendarDateInput from "@/components/ui/CalendarDateInput";
 import Button from "@/components/ui/Button";
 
 export default function DateRangeFilter({
@@ -42,8 +43,7 @@ export default function DateRangeFilter({
         <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
           {t.dashboard.dateFrom}
         </label>
-        <input
-          type="date"
+        <CalendarDateInput type="date"
           value={from}
           onChange={(e) => setFrom(e.target.value)}
           className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -54,8 +54,7 @@ export default function DateRangeFilter({
         <label className="text-xs font-medium text-slate-600 dark:text-slate-400">
           {t.dashboard.dateTo}
         </label>
-        <input
-          type="date"
+        <CalendarDateInput type="date"
           value={to}
           onChange={(e) => setTo(e.target.value)}
           className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"

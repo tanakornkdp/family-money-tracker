@@ -1,5 +1,6 @@
 "use client";
 
+import AnimatedSelect from "@/components/ui/AnimatedSelect";
 import { toDateInputValue } from "@/lib/utils/dateHelpers";
 
 import { useState, useEffect, useRef } from "react";
@@ -433,7 +434,7 @@ export default function TransactionForm({
             </button>
 
             {dropdownOpen && (
-              <div className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg max-h-64 overflow-y-auto">
+              <div data-open={dropdownOpen} inert={!dropdownOpen} className="sliding-options absolute z-20 mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg max-h-64 overflow-y-auto">
                 {titles.map((ti) => (
                   <div
                     key={ti.id}
@@ -539,7 +540,7 @@ export default function TransactionForm({
                 </button>
 
                 {categoryDropdownOpen && (
-                  <div className="absolute z-20 mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg max-h-64 overflow-y-auto">
+                  <div data-open={categoryDropdownOpen} inert={!categoryDropdownOpen} className="sliding-options absolute z-20 mt-1 w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-lg max-h-64 overflow-y-auto">
                     {categories.map((c) => (
                       <div
                         key={c.id}
@@ -594,7 +595,7 @@ export default function TransactionForm({
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   {t.transactions.linkToGoal}
                 </label>
-                <select
+                <AnimatedSelect
                   value={newTitleGoalId}
                   onChange={(e) => setNewTitleGoalId(e.target.value)}
                   className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -605,7 +606,7 @@ export default function TransactionForm({
                       {g.name}
                     </option>
                   ))}
-                </select>
+                </AnimatedSelect>
               </div>
             )}
 
@@ -710,7 +711,7 @@ export default function TransactionForm({
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   {t.creditCards.selectCard}
                 </label>
-                <select
+                <AnimatedSelect
                   value={selectedCardId}
                   onChange={(e) => setSelectedCardId(e.target.value)}
                   className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -727,7 +728,7 @@ export default function TransactionForm({
                         {card.name}
                       </option>
                     ))}
-                </select>
+                </AnimatedSelect>
               </div>
             )}
       {paymentMethod === "credit_card" && creditCards.length === 0 && (
@@ -758,7 +759,7 @@ export default function TransactionForm({
             <p className="mt-1 text-xs text-emerald-800/80 dark:text-emerald-300/80">บันทึกยอดเงินบาทและอัตราอ้างอิงไว้กับรายการ เพื่อสรุปย้อนหลังได้</p>
           </div>
           {activeTrips.length > 1 && (
-            <select
+            <AnimatedSelect
               aria-label="เลือกทริป"
               value={selectedTravelTripId}
               onChange={(event) => setSelectedTravelTripId(event.target.value)}
@@ -766,7 +767,7 @@ export default function TransactionForm({
             >
               <option value="">เลือกทริป</option>
               {activeTrips.map((trip) => <option key={trip.id} value={trip.id}>{trip.name} · {trip.destination}</option>)}
-            </select>
+            </AnimatedSelect>
           )}
           {selectedTravelTrip && selectedTravelTrip.currency !== "THB" && (
             <div className="space-y-2">
@@ -795,7 +796,7 @@ export default function TransactionForm({
           <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
             {t.household.title}
           </label>
-          <select
+          <AnimatedSelect
             value={householdId}
             onChange={(e) => setHouseholdId(e.target.value)}
             className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -806,7 +807,7 @@ export default function TransactionForm({
                 {h.name}
               </option>
             ))}
-          </select>
+          </AnimatedSelect>
         </div>
       )}
 

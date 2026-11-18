@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import AnimatedSelect from "@/components/ui/AnimatedSelect";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import {
@@ -10,7 +11,7 @@ import {
 } from "@/services/budgetPlans";
 import { getTransactions } from "@/services/transactions";
 import { BudgetPlan, Household, Transaction, DailyBudgetStatus } from "@/types";
-import BudgetPlanForm from "./BudgetPlanForm";
+import BudgetPlanDialog from "./BudgetPlanDialog";
 import BudgetCalendarGrid from "./BudgetCalendarGrid";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";
@@ -40,6 +41,7 @@ export default function BudgetCalendarManager({
   const [viewMonth, setViewMonth] = useState(focusDate.getMonth());
   const [plans, setPlans] = useState<BudgetPlan[]>(initialPlans);
   const [showForm, setShowForm] = useState(false);
+  const createTrigger = useRef<HTMLDivElement>(null);
   const [activePlan, setActivePlan] = useState<BudgetPlan | null>(null);
   const [selectedPlanId, setSelectedPlanId] = useState(initialPlanId ?? "");
   const [statuses, setStatuses] = useState<Map<string, DailyBudgetStatus>>(new Map());
@@ -91,7 +93,6 @@ export default function BudgetCalendarManager({
   const handlePlanCreated = (plan: BudgetPlan) => {
     setPlans((prev) => [plan, ...prev]);
     setSelectedPlanId(plan.id);
-    setShowForm(false);
   };
 
   const handleDeletePlan = async () => {
@@ -151,17 +152,12 @@ export default function BudgetCalendarManager({
   return (
     <div className="space-y-6">
       {showForm && (
-        <BudgetPlanForm
-          userId={userId}
-          households={households}
-          onCreated={handlePlanCreated}
-          onCancel={() => setShowForm(false)}
-        />
+        <BudgetPlanDialog anchor={createTrigger} title={t.budget.createPlan} onClose={() => setShowForm(false)} userId={userId} households={households} onCreated={handlePlanCreated} />
       )}
 
-      {!showForm && (
+      <div ref={createTrigger} className="w-fit">
         <Button onClick={() => setShowForm(true)}>{t.budget.createPlan}</Button>
-      )}
+      </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2">
@@ -184,7 +180,7 @@ export default function BudgetCalendarManager({
           {activePlan ? (
             <>
               {matchingPlans.length > 1 && <label className="mb-3 flex items-center gap-2 text-xs font-medium text-slate-600 dark:text-slate-300">แผนงบ
-                <select value={activePlan.id} onChange={(event) => { setSelectedPlanId(event.target.value); setSelectedDate(null); }} className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">{matchingPlans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}{plan.category ? " · " + plan.category : ""}</option>)}</select>
+                <AnimatedSelect value={activePlan.id} onChange={(event) => { setSelectedPlanId(event.target.value); setSelectedDate(null); }} className="min-w-0 flex-1 rounded-lg border border-slate-200 bg-white px-2 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">{matchingPlans.map((plan) => <option key={plan.id} value={plan.id}>{plan.name}{plan.category ? " · " + plan.category : ""}</option>)}</AnimatedSelect>
               </label>}
               <div className="mb-4 flex items-center justify-between rounded-xl bg-primary-50 dark:bg-primary-950/30 p-3">
                 <div>

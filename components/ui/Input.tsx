@@ -1,4 +1,6 @@
+"use client";
 import { InputHTMLAttributes, forwardRef, useId } from "react";
+import CalendarDateInput from "./CalendarDateInput";
 import clsx from "clsx";
 
 interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
@@ -17,7 +19,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             {label}
           </label>
         )}
-        <input
+        {props.type === "date" ? <CalendarDateInput {...props} ref={ref} id={inputId} aria-label={label ?? props["aria-label"]} className={clsx("field-control", className)} /> : <input
           ref={ref}
           id={inputId}
           className={clsx(
@@ -25,7 +27,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             className
           )}
           {...props}
-        />
+        />}
       </div>
     );
   }

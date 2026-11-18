@@ -1,5 +1,7 @@
 "use client";
 
+import CalendarDateInput from "@/components/ui/CalendarDateInput";
+import AnimatedSelect from "@/components/ui/AnimatedSelect";
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -310,8 +312,8 @@ export default function RecurringBillsManager({
                     <span className="truncate">{category ? getCategoryIcon(category) + " " + category : (locale === "th" ? "เลือกหมวดหมู่" : "Select category")}</span>
                     <ChevronDown size={16} className="shrink-0" aria-hidden="true" />
                   </button>
-                  <div id="recurring-category-options" hidden={!categoryOpen}
-                    className="absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
+                  <div id="recurring-category-options" data-open={categoryOpen} inert={!categoryOpen}
+                    className="sliding-options absolute inset-x-0 top-full z-20 mt-1 overflow-hidden rounded-xl border border-slate-200 bg-white shadow-lg dark:border-slate-700 dark:bg-slate-800">
                     <ul className="max-h-52 overflow-y-auto overscroll-contain">
                       {categories.filter(item => item.type === type || item.type === "both").map(item => <li key={item.id} className="flex items-center gap-1">
                         <button type="button" aria-pressed={category === item.name} onClick={() => { setCategory(item.name); setCategoryOpen(false); }}
@@ -348,7 +350,7 @@ export default function RecurringBillsManager({
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   {locale === "th" ? "ความถี่" : "Frequency"}
                 </label>
-                <select
+                <AnimatedSelect
                   className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   value={frequency}
                   onChange={(e) => setFrequency(e.target.value as "weekly" | "monthly" | "yearly")}
@@ -356,7 +358,7 @@ export default function RecurringBillsManager({
                   <option value="weekly">{locale === "th" ? "รายสัปดาห์" : "Weekly"}</option>
                   <option value="monthly">{locale === "th" ? "รายเดือน" : "Monthly"}</option>
                   <option value="yearly">{locale === "th" ? "รายปี" : "Yearly"}</option>
-                </select>
+                </AnimatedSelect>
               </div>
 
               <Input
@@ -370,7 +372,7 @@ export default function RecurringBillsManager({
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   {locale === "th" ? "ช่องทางการชำระเงิน" : "Payment Method"}
                 </label>
-                <select
+                <AnimatedSelect
                   className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   value={paymentMethod}
                   onChange={(e) => setPaymentMethod(e.target.value as PaymentMethod)}
@@ -378,7 +380,7 @@ export default function RecurringBillsManager({
                   <option value="cash">{locale === "th" ? "เงินสด" : "Cash"}</option>
                   <option value="credit_card">{locale === "th" ? "บัตรเครดิต" : "Credit Card"}</option>
                   <option value="debit_card">{locale === "th" ? "บัตรเดบิต / วอลเล็ต" : "Debit Card"}</option>
-                </select>
+                </AnimatedSelect>
               </div>
 
               {paymentMethod !== "cash" && (
@@ -386,7 +388,7 @@ export default function RecurringBillsManager({
                   <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                     {locale === "th" ? "ผูกกับบัตร" : "Link to Card"}
                   </label>
-                  <select
+                  <AnimatedSelect
                     className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                     value={cardId}
                     onChange={(e) => setCardId(e.target.value)}
@@ -402,7 +404,7 @@ export default function RecurringBillsManager({
                           {c.name}
                         </option>
                       ))}
-                  </select>
+                  </AnimatedSelect>
                 </div>
               )}
 
@@ -410,7 +412,7 @@ export default function RecurringBillsManager({
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   {locale === "th" ? "สำหรับกลุ่มครอบครัว" : "For Household"}
                 </label>
-                <select
+                <AnimatedSelect
                   className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent"
                   value={householdId}
                   onChange={(e) => setHouseholdId(e.target.value)}
@@ -421,7 +423,7 @@ export default function RecurringBillsManager({
                       🏠 {h.name}
                     </option>
                   ))}
-                </select>
+                </AnimatedSelect>
               </div>
             </div>
 
@@ -506,9 +508,9 @@ export default function RecurringBillsManager({
 
               {bill.item_kind === "subscription" && <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-100 pt-3 dark:border-slate-800/60">
                 <span className="text-xs text-slate-500">{locale === "th" ? "สถานะการใช้งาน" : "Usage status"}</span>
-                <select disabled={bill.user_id !== userId} aria-label={locale === "th" ? `สถานะ ${bill.name}` : `${bill.name} usage status`} value={bill.review_status} onChange={(event) => void handleReviewStatus(bill.id, event.target.value as SubscriptionReviewStatus)} className="max-w-[58%] rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
+                <AnimatedSelect disabled={bill.user_id !== userId} aria-label={locale === "th" ? `สถานะ ${bill.name}` : `${bill.name} usage status`} value={bill.review_status} onChange={(event) => void handleReviewStatus(bill.id, event.target.value as SubscriptionReviewStatus)} className="max-w-[58%] rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-emerald-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
                   <option value="active">{locale === "th" ? "ใช้อยู่" : "Using"}</option><option value="review">{locale === "th" ? "ทบทวนการใช้งาน" : "Review"}</option><option value="not_using">{locale === "th" ? "ไม่ได้ใช้" : "Not using"}</option>
-                </select>
+                </AnimatedSelect>
               </div>}
 
               <div className="mt-4 pt-4 border-t border-slate-100 dark:border-slate-800/60 flex items-baseline justify-between">
@@ -541,7 +543,7 @@ export default function RecurringBillsManager({
               {bill.is_active && bill.user_id === userId && (
                 <div className="mt-4 pt-3 border-t border-slate-100 dark:border-slate-800/40 flex flex-wrap items-center justify-end gap-2">
                   <label className="text-xs text-slate-500" htmlFor={`occurrence-${bill.id}`}>{locale === "th" ? "รอบวันที่" : "Occurrence"}</label>
-                  <input id={`occurrence-${bill.id}`} type="date" value={recordDates[bill.id] ?? getCurrentOccurrenceDate(bill)} onChange={(event) => setRecordDates((previous) => ({ ...previous, [bill.id]: event.target.value }))} className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
+                  <CalendarDateInput id={`occurrence-${bill.id}`} type="date" value={recordDates[bill.id] ?? getCurrentOccurrenceDate(bill)} onChange={(event) => setRecordDates((previous) => ({ ...previous, [bill.id]: event.target.value }))} className="rounded-lg border border-slate-300 bg-white px-2 py-1.5 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100" />
                   <button
                     onClick={() => handlePostTransaction(bill, recordDates[bill.id] ?? getCurrentOccurrenceDate(bill))}
                     disabled={loading}

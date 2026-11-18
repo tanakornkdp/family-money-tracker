@@ -1,4 +1,5 @@
 "use client";
+import AnimatedSelect from "@/components/ui/AnimatedSelect";
 import Accordion from "@/components/ui/Accordion";
 
 import { useEffect, useState } from "react";
@@ -104,17 +105,17 @@ export default function TripSettlementPanel({ trip, accounts, expenses }: {
       </form>
       <label className="block space-y-1 text-sm">
         <span>{th ? "เลือกบัญชีจากกลุ่ม" : "Choose an account from your groups"}</span>
-        <select className={field} value={account} onChange={event => setAccount(event.target.value)}>
+        <AnimatedSelect className={field} value={account} onChange={event => setAccount(event.target.value)}>
           <option value="">{th ? "เลือกบัญชี" : "Choose account"}</option>
           {candidates.map(item => <option key={item.id} value={item.id}>{item.name}{item.group && ` · ${item.group}`}</option>)}
-        </select>
+        </AnimatedSelect>
       </label>
       {people.some(person => !person.accountId) && <label className="block space-y-1 text-sm">
         <span>{th ? "เชื่อมกับชื่อที่เพิ่มไว้" : "Link an existing guest"}</span>
-        <select className={field} value={linkPerson} onChange={event => setLinkPerson(event.target.value)}>
+        <AnimatedSelect className={field} value={linkPerson} onChange={event => setLinkPerson(event.target.value)}>
           <option value="">{th ? "เพิ่มเป็นคนใหม่" : "Add as a new participant"}</option>
           {people.filter(person => !person.accountId).map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
-        </select>
+        </AnimatedSelect>
       </label>}
       <button type="button" className="min-h-11 rounded-xl border border-mobile-border px-3 disabled:opacity-50" disabled={!account || (!linkPerson && people.length >= 50)} onClick={() => {
         const selected = candidates.find(item => item.id === account);
@@ -130,10 +131,10 @@ export default function TripSettlementPanel({ trip, accounts, expenses }: {
         const change = (next: typeof split) => edit({ ...data, splits: { ...splits, [expense.id]: next } });
         return <Accordion key={expense.id} className="border-t border-mobile-border py-2" triggerClassName="cursor-pointer break-words py-2" title={<>{expense.title} · {money.format(expense.cents / 100)}</>}>
           <label className="block space-y-1 text-sm"><span>{th ? "ผู้จ่าย" : "Paid by"}</span>
-            <select className={field} value={split.payer} onChange={event => change({ ...split, payer: event.target.value, shares: split.shares.length ? split.shares : people.map(person => person.id) })}>
+            <AnimatedSelect className={field} value={split.payer} onChange={event => change({ ...split, payer: event.target.value, shares: split.shares.length ? split.shares : people.map(person => person.id) })}>
               <option value="">{th ? "เลือกผู้จ่าย" : "Choose payer"}</option>
               {people.map(person => <option key={person.id} value={person.id}>{person.name}</option>)}
-            </select>
+            </AnimatedSelect>
           </label>
           <fieldset className="mt-2"><legend className="text-sm">{th ? "หารเท่ากันระหว่าง" : "Split equally between"}</legend>
             {people.map(person => <label key={person.id} className="flex min-h-10 items-center gap-2 break-all text-sm">

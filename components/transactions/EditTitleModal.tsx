@@ -1,5 +1,6 @@
 "use client";
 
+import AnimatedSelect from "@/components/ui/AnimatedSelect";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -314,7 +315,7 @@ export default function EditTitleModal({
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 {t.transactions.linkToGoal}
               </label>
-              <select
+              <AnimatedSelect
                 value={goalId}
                 onChange={(e) => setGoalId(e.target.value)}
                 className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -325,7 +326,7 @@ export default function EditTitleModal({
                     {g.name}
                   </option>
                 ))}
-              </select>
+              </AnimatedSelect>
             </div>
           )}
 

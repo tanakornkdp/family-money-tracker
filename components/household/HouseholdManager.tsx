@@ -1,5 +1,6 @@
 "use client";
 
+import AnimatedSelect from "@/components/ui/AnimatedSelect";
 import { getDisplayNamesByUserIds } from "@/services/userSettings";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -335,7 +336,7 @@ const loadMembers = async (householdId: string) => {
                             <label className="sr-only" htmlFor={`member-role-${h.id}-${m.user_id}`}>{locale === "en" ? "Member role" : "บทบาทสมาชิก"}</label>
                           )}
                           {h.owner_id === userId && m.user_id !== h.owner_id && (
-                            <select
+                            <AnimatedSelect
                               id={`member-role-${h.id}-${m.user_id}`}
                               value={m.role === "admin" ? "admin" : "member"}
                               disabled={loading}
@@ -344,7 +345,7 @@ const loadMembers = async (householdId: string) => {
                             >
                               <option value="member">{locale === "en" ? "Member" : "สมาชิก"}</option>
                               <option value="admin">{locale === "en" ? "Admin" : "ผู้ดูแล"}</option>
-                            </select>
+                            </AnimatedSelect>
                           )}
                           {h.owner_id === userId && m.user_id !== userId && (
                             <button

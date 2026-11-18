@@ -1,5 +1,6 @@
 "use client";
 
+import AnimatedSelect from "@/components/ui/AnimatedSelect";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -154,9 +155,9 @@ export default function SettingsForm({
         <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100">{locale === "th" ? "ความปลอดภัยของบัญชี" : "Account security"}</h2>
         <div className="mt-4 max-w-lg">
           <label className="block text-sm font-medium text-slate-700 dark:text-slate-300">{locale === "th" ? "ล็อกเมื่อไม่มีการใช้งาน" : "Lock after inactivity"}
-            <select value={lockTimeoutMinutes} onChange={(event) => setLockTimeoutMinutes(Number(event.target.value))} className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-800">
+            <AnimatedSelect value={lockTimeoutMinutes} onChange={(event) => setLockTimeoutMinutes(Number(event.target.value))} className="mt-2 min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-sm dark:border-slate-700 dark:bg-slate-800">
               <option value={0}>{locale === "th" ? "ปิด" : "Disabled"}</option><option value={1}>{locale === "th" ? "1 นาที" : "1 minute"}</option><option value={5}>{locale === "th" ? "5 นาที (ค่าเริ่มต้น)" : "5 minutes (default)"}</option><option value={10}>{locale === "th" ? "10 นาที" : "10 minutes"}</option><option value={15}>{locale === "th" ? "15 นาที" : "15 minutes"}</option><option value={30}>{locale === "th" ? "30 นาที" : "30 minutes"}</option>
-            </select>
+            </AnimatedSelect>
           </label>
           <p className="mt-2 text-xs text-slate-500">{locale === "th" ? "ปลดล็อกด้วยรหัสผ่านบัญชีเดิม ประวัตินี้แสดงหลังเข้าสู่ระบบและเก็บเฉพาะเวลาและชนิดอุปกรณ์คร่าว ๆ" : "Unlock with your account password. This history stores only the time and a coarse device label."}</p>
         </div>
@@ -177,21 +178,21 @@ export default function SettingsForm({
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               {t.settings.language}
             </label>
-            <select
+            <AnimatedSelect
               value={locale}
               onChange={(e) => setLocale(e.target.value as AppLanguage)}
               className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
             >
               <option value="th">ไทย (Thai)</option>
               <option value="en">English</option>
-            </select>
+            </AnimatedSelect>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               {t.settings.theme}
             </label>
-            <select
+            <AnimatedSelect
               value={activeTheme}
               onChange={(e) => {
                 const nextTheme = e.target.value as AppTheme;
@@ -202,14 +203,14 @@ export default function SettingsForm({
               <option value="light">{t.settings.light}</option>
               <option value="dark">{t.settings.dark}</option>
               <option value="system">{t.settings.system}</option>
-            </select>
+            </AnimatedSelect>
           </div>
 
           <div className="flex flex-col gap-1.5">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               {t.settings.currency}
             </label>
-            <select
+            <AnimatedSelect
               value={currency}
               onChange={(e) => setCurrency(e.target.value)}
               className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -219,7 +220,7 @@ export default function SettingsForm({
                   {c}
                 </option>
               ))}
-            </select>
+            </AnimatedSelect>
           </div>
 
           {error && <p className="text-sm text-red-600">{error}</p>}

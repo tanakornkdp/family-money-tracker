@@ -1,5 +1,6 @@
 "use client";
 
+import AnimatedSelect from "@/components/ui/AnimatedSelect";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -144,7 +145,7 @@ export default function GoalsManager({
               <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                 {t.goals.goalType}
               </label>
-              <select
+              <AnimatedSelect
                 value={goalType}
                 onChange={(e) => setGoalType(e.target.value as GoalType)}
                 className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -154,7 +155,7 @@ export default function GoalsManager({
                     {t.goals.types[gt]}
                   </option>
                 ))}
-              </select>
+              </AnimatedSelect>
             </div>
 
             <Input
@@ -178,7 +179,7 @@ export default function GoalsManager({
                 <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
                   {t.goals.household}
                 </label>
-                <select
+                <AnimatedSelect
                   value={householdId}
                   onChange={(e) => setHouseholdId(e.target.value)}
                   className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -189,7 +190,7 @@ export default function GoalsManager({
                       {h.name}
                     </option>
                   ))}
-                </select>
+                </AnimatedSelect>
               </div>
             )}
 

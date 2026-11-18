@@ -1,5 +1,6 @@
 "use client";
 
+import AnimatedSelect from "@/components/ui/AnimatedSelect";
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -116,21 +117,21 @@ export default function EditTransactionModal({
           <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
             {t.transactions.formType}
           </label>
-          <select
+          <AnimatedSelect
             value={type}
             onChange={(e) => setType(e.target.value as TransactionType)}
             className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
           >
             <option value="expense">{t.transactions.expense}</option>
             <option value="income">{t.transactions.income}</option>
-          </select>
+          </AnimatedSelect>
         </div>
 
         <div className="flex flex-col gap-1.5">
           <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
             {t.transactions.formCategory}
           </label>
-          <select
+          <AnimatedSelect
             value={category}
             onChange={(e) => setCategory(e.target.value)}
             className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -140,7 +141,7 @@ export default function EditTransactionModal({
                 {categoryIconMap[c.name] ?? "💰"} {c.name}
               </option>
             ))}
-          </select>
+          </AnimatedSelect>
         </div>
 
         {goals.length > 0 && (
@@ -148,7 +149,7 @@ export default function EditTransactionModal({
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               {t.transactions.linkToGoal}
             </label>
-            <select
+            <AnimatedSelect
               value={goalId}
               onChange={(e) => setGoalId(e.target.value)}
               className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -159,7 +160,7 @@ export default function EditTransactionModal({
                   {g.name}
                 </option>
               ))}
-            </select>
+            </AnimatedSelect>
           </div>
         )}
 

@@ -1,4 +1,5 @@
 "use client";
+import AnimatedSelect from "@/components/ui/AnimatedSelect";
 import Accordion from "@/components/ui/Accordion";
 
 import { formatCurrency } from "@/lib/utils/formatCurrency";
@@ -283,10 +284,10 @@ export default function ReceiptList({
                   {activeTrips.length > 1 && (
                     <label className="block space-y-1 text-sm font-medium text-slate-700 dark:text-slate-300">
                       เลือกทริป
-                      <select value={selectedTripId} onChange={(event) => setSelectedTripId(event.target.value)} className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-base dark:border-slate-700 dark:bg-slate-800">
+                      <AnimatedSelect value={selectedTripId} onChange={(event) => setSelectedTripId(event.target.value)} className="min-h-11 w-full rounded-xl border border-slate-300 bg-white px-3 text-base dark:border-slate-700 dark:bg-slate-800">
                         <option value="">เลือกทริป</option>
                         {activeTrips.map((trip) => <option key={trip.id} value={trip.id}>{trip.name} · {trip.currency}</option>)}
-                      </select>
+                      </AnimatedSelect>
                     </label>
                   )}
                   {selectedTrip && selectedTrip.currency !== "THB" && (

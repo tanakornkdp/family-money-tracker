@@ -1,7 +1,9 @@
 "use client";
 import Accordion from "@/components/ui/Accordion";
 import { useState, type FormEventHandler, type InputHTMLAttributes, type ReactNode, type SelectHTMLAttributes } from "react";
-import { CalendarDays, ChevronDown, Search } from "lucide-react";
+import { Search } from "lucide-react";
+import AnimatedSelect from "./AnimatedSelect";
+import CalendarDateInput from "./CalendarDateInput";
 
 type Locale = "th" | "en";
 export const filterLabel = "flex min-w-0 flex-col gap-1.5 text-[13px] font-medium text-mobile-muted";
@@ -24,19 +26,15 @@ export function FilterSearch({ locale, ...props }: InputHTMLAttributes<HTMLInput
   </div>;
 }
 
-export function FilterDate({ label, locale, defaultValue, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; locale: Locale }) {
+export function FilterDate({ label, locale: _locale, defaultValue, ...props }: InputHTMLAttributes<HTMLInputElement> & { label: string; locale: Locale }) {
   const [date, setDate] = useState(String(defaultValue ?? ""));
   return <label className={filterLabel}>
     {label}
     <span className="relative block min-w-0">
-      <input {...props} type="date" value={date} onChange={(event) => {
+      <CalendarDateInput {...props} lang={_locale} aria-label={label} value={date} onChange={(event) => {
         setDate(event.currentTarget.value);
         props.onChange?.(event);
-      }} className="field-control field-date" />
-      <span aria-hidden="true" className={"field-date-caption " + (date ? "text-mobile-ink" : "text-mobile-muted")}>
-        {date ? formatFilterDate(date, locale) : locale === "th" ? "เลือกวันที่" : "Select date"}
-      </span>
-      <CalendarDays size={18} aria-hidden="true" className={filterChevron} />
+      }} className="field-control" />
     </span>
   </label>;
 }
@@ -45,8 +43,7 @@ export function FilterSelect({ label, children, ...props }: SelectHTMLAttributes
   return <label className={filterLabel}>
     {label}
     <span className="relative block min-w-0">
-      <select {...props} className="field-control field-select">{children}</select>
-      <ChevronDown size={18} aria-hidden="true" className={filterChevron} />
+      <AnimatedSelect {...props} aria-label={label} className="field-control">{children}</AnimatedSelect>
     </span>
   </label>;
 }

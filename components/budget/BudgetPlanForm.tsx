@@ -1,5 +1,6 @@
 "use client";
 
+import AnimatedSelect from "@/components/ui/AnimatedSelect";
 import { toDateInputValue } from "@/lib/utils/dateHelpers";
 
 import { useState } from "react";
@@ -84,12 +85,12 @@ export default function BudgetPlanForm({
   };
 
   return (
-    <Card>
-      <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
+    <Card className="budget-plan-form">
+      <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-3 pr-10">
         {t.budget.createPlan}
       </h2>
 
-      <div className="space-y-4">
+      <div className="grid grid-cols-2 gap-3 [&>fieldset]:col-span-2 [&>div]:min-w-0">
         <Input label={t.budget.planName} value={name} onChange={(e) => setName(e.target.value)} />
 
         <Input
@@ -101,24 +102,24 @@ export default function BudgetPlanForm({
           onChange={(e) => setTotalAmount(e.target.value)}
         />
 
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div className="col-span-2 grid grid-cols-2 gap-3">
           <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
-            หมวดหมู่ (ไม่เลือก = งบรวม)
-            <select value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
+            หมวดหมู่
+            <AnimatedSelect value={category} onChange={(e) => setCategory(e.target.value)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
               <option value="">งบรวม</option>{categories.map((item) => <option key={item} value={item}>{item}</option>)}
-            </select>
+            </AnimatedSelect>
           </label>
           <label className="flex flex-col gap-1.5 text-sm font-medium text-slate-700 dark:text-slate-300">
-            ทริป (ไม่เลือก = ไม่ผูกทริป)
-            <select value={tripId} onChange={(e) => setTripId(e.target.value)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
+            ทริป
+            <AnimatedSelect value={tripId} onChange={(e) => setTripId(e.target.value)} className="rounded-xl border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-800">
               <option value="">ทุกทริป / ปกติ</option>{trips.map((trip) => <option key={trip.id} value={trip.id}>{trip.name} · {trip.destination}</option>)}
-            </select>
+            </AnimatedSelect>
           </label>
         </div>
 
         <BudgetAlertThresholdPicker idPrefix="budget-create" value={alertThresholds} onChange={setAlertThresholds} />
 
-        <div className="grid grid-cols-2 gap-4">
+        <div className="col-span-2 grid grid-cols-2 gap-3">
           <Input
             label={t.budget.startDate}
             type="date"
@@ -134,11 +135,11 @@ export default function BudgetPlanForm({
         </div>
 
         {households.length > 0 && (
-          <div className="flex flex-col gap-1.5">
+          <div className="col-span-2 flex flex-col gap-1.5">
             <label className="text-sm font-medium text-slate-700 dark:text-slate-300">
               {t.budget.household}
             </label>
-            <select
+            <AnimatedSelect
               value={householdId}
               onChange={(e) => setHouseholdId(e.target.value)}
               className="rounded-xl border border-slate-300 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
@@ -149,13 +150,13 @@ export default function BudgetPlanForm({
                   {h.name}
                 </option>
               ))}
-            </select>
+            </AnimatedSelect>
           </div>
         )}
 
-        {error && <p className="text-sm text-red-600">{error}</p>}
+        {error && <p role="alert" className="col-span-2 text-sm text-red-600">{error}</p>}
 
-        <div className="flex gap-2">
+        <div className="col-span-2 flex gap-2 [&>button]:h-11 [&>button]:flex-1">
           <Button
             onClick={handleCreate}
             disabled={loading || !name.trim() || !totalAmount || !startDate || !endDate}
