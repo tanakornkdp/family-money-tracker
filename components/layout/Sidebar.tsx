@@ -2,13 +2,13 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { LayoutDashboard, Receipt, Tag, ScanLine, Bot, Users, Target, CalendarDays, BarChart3, Settings, ChevronLeft, ChevronRight, CreditCard } from "lucide-react";
+import { LayoutDashboard, Receipt, Tag, ScanLine, Bot, Users, Target, CalendarDays, CalendarClock, BarChart3, Settings, ChevronLeft, ChevronRight, CreditCard } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import clsx from "clsx";
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const { t } = useLanguage();
+  const { t, locale } = useLanguage();
   const [collapsed, setCollapsed] = useState(false);
   const navRef = useRef<HTMLElement>(null);
   const pillRef = useRef<HTMLDivElement>(null);
@@ -17,6 +17,7 @@ export default function Sidebar() {
     { href: "/categories", label: t.nav.categories, icon: Tag }, { href: "/credit-cards", label: t.nav.creditCards, icon: CreditCard },
     { href: "/receipts", label: t.nav.receipts, icon: ScanLine }, { href: "/assistant", label: t.nav.assistant, icon: Bot, badge: "AI" },
     { href: "/household", label: t.nav.household, icon: Users }, { href: "/goals", label: t.nav.goals, icon: Target },
+    { href: "/money-plans", label: locale === "th" ? "แผนใช้เงินล่วงหน้า" : "Future money plans", icon: CalendarClock },
     { href: "/budget", label: t.nav.budget, icon: CalendarDays }, { href: "/reports", label: t.nav.reports, icon: BarChart3 }, { href: "/settings", label: t.nav.settings, icon: Settings },
   ];
   useEffect(() => {

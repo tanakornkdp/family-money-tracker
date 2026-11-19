@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   CalendarDays,
+  CalendarClock,
   BarChart3,
   Camera,
   CreditCard,
@@ -47,6 +48,7 @@ export default function MobileNavigation() {
     { href: "/mobile/receipts", label: t.nav.receipts, icon: ScanLine },
     { href: "/mobile/household", label: t.nav.household, icon: Users },
     { href: "/mobile/goals", label: t.nav.goals, icon: Target },
+    { href: "/mobile/money-plans", label: locale === "th" ? "แผนใช้เงินล่วงหน้า" : "Future money plans", icon: CalendarClock },
     { href: "/mobile/recurring-bills", label: t.nav.recurring, icon: CalendarDays },
     { href: "/mobile/reports", label: t.nav.reports, icon: BarChart3 },
     { href: "/mobile/review", label: t.mobile.reviewPage.title, icon: ShieldCheck },
