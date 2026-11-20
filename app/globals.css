@@ -342,15 +342,15 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   animation: fadeOut 0s ease-in forwards;
 }
 
-.page-transition > * { animation: content-reveal .7s cubic-bezier(.2,.8,.2,1) both; }
+.page-transition > * { animation: content-reveal .18s cubic-bezier(.2,.8,.2,1) both; }
 .page-transition > *:nth-child(1) { animation-delay: 0ms; }
-.page-transition > *:nth-child(2) { animation-delay: 60ms; }
-.page-transition > *:nth-child(3) { animation-delay: 120ms; }
-.page-transition > *:nth-child(4) { animation-delay: 180ms; }
-.page-transition > *:nth-child(5) { animation-delay: 240ms; }
+.page-transition > *:nth-child(2) { animation-delay: 0ms; }
+.page-transition > *:nth-child(3) { animation-delay: 0ms; }
+.page-transition > *:nth-child(4) { animation-delay: 0ms; }
+.page-transition > *:nth-child(5) { animation-delay: 0ms; }
 .page-transition h1, .page-transition h2 { overflow: hidden; clip-path: inset(0); }
-.page-transition h1, .page-transition h2 { animation: title-reveal .75s cubic-bezier(.2,.8,.2,1) both; }
-.page-transition h2 { animation-delay: 80ms; }
+.page-transition h1, .page-transition h2 { animation: title-reveal .18s cubic-bezier(.2,.8,.2,1) both; }
+.page-transition h2 { animation-delay: 0ms; }
 .dashboard-reveal { animation: content-reveal .7s cubic-bezier(.2,.8,.2,1) both; }
 @keyframes content-reveal { from { opacity: 0; filter: blur(12px); transform: translateY(12px); } to { opacity: 1; filter: blur(0); transform: translateY(0); } }
 @keyframes title-reveal { from { opacity: 0; transform: translateY(110%); } to { opacity: 1; transform: translateY(0); } }
@@ -368,8 +368,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 @keyframes mobile-backdrop-in { from { opacity: 0; } to { opacity: 1; } }
-.mobile-route-enter { animation: mobile-route-rise .34s cubic-bezier(.22,.75,.28,1) both; }
-.mobile-sheet-enter { animation: mobile-sheet-rise .38s cubic-bezier(.22,.75,.28,1) both; }
+.mobile-route-enter { animation: mobile-route-rise .18s cubic-bezier(.22,.75,.28,1) both; }
+.mobile-sheet-enter { animation: mobile-sheet-rise .18s cubic-bezier(.22,.75,.28,1) both; }
 .mobile-sheet-backdrop { animation: mobile-backdrop-in .22s ease-out both; }
 
 .sidebar-shell { width: 200px; height: calc(100vh - 65px); position: sticky; top: 65px; flex-shrink: 0; overflow: visible; background: color-mix(in srgb, var(--surface) 92%, transparent); border-right: 1px solid rgb(226 232 240 / .8); transition: width .42s cubic-bezier(.65,0,.35,1), background-color .3s; }
@@ -457,4 +457,8 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   .budget-plan-form .field-control { height: 40px; }
   .budget-plan-form .gap-1\.5 { gap: 4px; }
   .budget-plan-form h2 { margin-bottom: 6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-transition, .page-transition > *, .page-transition h1, .page-transition h2, .dashboard-reveal, .mobile-route-enter, .mobile-sheet-enter { animation: none !important; transition: none !important; }
 }

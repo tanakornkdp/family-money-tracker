@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
@@ -8,7 +9,7 @@ import { formatDate } from "@/lib/utils/dateHelpers";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { Trash2, Pencil } from "lucide-react";
 import clsx from "clsx";
-import EditTransactionModal from "./EditTransactionModal";
+const EditTransactionModal = dynamic(() => import("./EditTransactionModal"), { ssr: false });
 import TransactionTripIndicator from "./TransactionTripIndicator";
 
 export default function TransactionTable({

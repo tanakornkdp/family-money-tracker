@@ -3,7 +3,7 @@
 import { useEffect, useRef } from "react";
 import { createCurrencyFormatter, formatCurrency } from "@/lib/utils/formatCurrency";
 
-const countDurationMs = 1100;
+const countDurationMs = 180;
 
 export default function AnimatedCurrency({ amount, currency }: { amount: number; currency: string }) {
   const label = formatCurrency(amount, currency);

@@ -1,8 +1,10 @@
+import { getUser } from "@/lib/auth/getUser";
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getTransactions } from "@/services/transactions";
 import { getTripNames } from "@/services/travelTrips";
-import { getDisplayNamesByUserIds, getUserSettings } from "@/services/userSettings";
+import { getDisplayNamesByUserIds } from "@/services/userSettings";
 import { getCategoryIconMap } from "@/services/categories";
 import { translations, Locale } from "@/lib/i18n/translations";
 import TransactionsPageClient from "@/components/transactions/TransactionsPageClient";
@@ -16,14 +18,14 @@ async function getServerLocale(): Promise<Locale> {
 
 export default async function TransactionsPage() {
   const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  const currentUserId = userData?.user?.id ?? "";
+  const user = await getUser();
+  const currentUserId = user?.id ?? "";
   const transactions = await getTransactions(supabase);
   const locale = await getServerLocale();
   const t = translations[locale];
 
-  const settings = userData?.user
-    ? await getUserSettings(supabase, userData.user.id)
+  const settings = user
+    ? await getCachedUserSettings(user.id)
     : null;
   const currency = settings?.currency ?? "THB";
 

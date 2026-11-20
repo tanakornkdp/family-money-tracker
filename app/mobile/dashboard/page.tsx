@@ -1,9 +1,10 @@
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import { requireUser } from "@/lib/auth/getUser";
 import { getUserHouseholds } from "@/services/households";
 import HouseholdViewSwitcher from "@/components/dashboard/HouseholdViewSwitcher";
 import { createClient } from "@/lib/supabase/server";
 import { getTransactions, calculateKpis, calculateCashBalance } from "@/services/transactions";
-import { getUserSettings } from "@/services/userSettings";
+
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import AnimatedCurrency from "@/components/ui/AnimatedCurrency";
 import Link from "next/link";
@@ -42,7 +43,7 @@ export default async function MobileDashboard({
   const [households, cards, settings, trips, [transactions, recurringItems], selectedHousehold] = await Promise.all([
     householdsRequest,
     selectedHouseholdRequest.then(selected => selected ? [] : getCardsWithBalance(supabase)),
-    getUserSettings(supabase, user.id),
+    getCachedUserSettings(user.id),
     visible.includes("trips") ? getTravelTrips(supabase, user.id) : [],
     dashboardActivity,
     selectedHouseholdRequest,

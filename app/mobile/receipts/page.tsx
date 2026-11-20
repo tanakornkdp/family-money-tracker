@@ -1,7 +1,8 @@
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import { requireUser } from "@/lib/auth/getUser";
 import { createClient } from "@/lib/supabase/server";
 import { getReceipts } from "@/services/receipts";
-import { getUserSettings } from "@/services/userSettings";
+
 import ReceiptUploader from "@/components/receipts/ReceiptUploader";
 import ReceiptList from "@/components/receipts/ReceiptList";
 import { getRequestLocale } from "@/lib/i18n/server";
@@ -12,7 +13,7 @@ export default async function MobileReceipts() {
   const supabase = await createClient();
   const [receipts, settings] = await Promise.all([
     getReceipts(supabase),
-    getUserSettings(supabase, user.id),
+    getCachedUserSettings(user.id),
   ]);
   const currency = settings?.currency ?? "THB";
   const locale = await getRequestLocale(settings?.language);

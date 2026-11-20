@@ -1,3 +1,6 @@
+import { selectDashboardTransactions, canDeriveDashboardRange } from "@/lib/utils/dashboardTransactions";
+import { getUser } from "@/lib/auth/getUser";
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -9,11 +12,7 @@ import {
   calculateStackedBarData,
   calculateCashBalance,
 } from "@/services/transactions";
-import {
-  getUserSettings,
-  getDisplayNamesByUserIds,
-  getUserProfilesByIds,
-} from "@/services/userSettings";
+import { getDisplayNamesByUserIds, getUserProfilesByIds } from "@/services/userSettings";
 import { getUserHouseholds, getHouseholdMembers } from "@/services/households";
 import { translations, Locale } from "@/lib/i18n/translations";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
@@ -72,40 +71,33 @@ export default async function DashboardPage({
     period === "day" || period === "week" || period === "year" ? period : "month";
 
   const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
-  const currentUserId = userData?.user?.id ?? "";
+  const user = await getUser();
+  const currentUserId = user?.id ?? "";
 
   const selectedMemberIds = membersParam ? membersParam.split(",").filter(Boolean) : [];
 
-  const transactions = await getTransactions(supabase, {
-    householdId: selectedHouseholdId || undefined,
-    userIds: selectedMemberIds.length > 0 ? selectedMemberIds : undefined,
-    dateFrom,
-    dateTo,
-  });
-  const kpis = calculateKpis(transactions);
-  const balanceTransactions = from || to
-    ? await getTransactions(supabase, {
-        householdId: selectedHouseholdId || undefined,
-        userIds: selectedMemberIds.length ? selectedMemberIds : undefined,
-      })
-    : transactions;
-  const cashBalance = calculateCashBalance(balanceTransactions);
-  const settings = userData?.user
-    ? await getUserSettings(supabase, userData.user.id)
-    : null;
-  const currency = settings?.currency ?? "THB";
-  const locale = await getServerLocale();
-  const t = translations[locale];
-  const [recurringItems, allScopeTransactions] = await Promise.all([
-    selectedHouseholdId
-      ? getHouseholdRecurringBills(supabase, selectedHouseholdId, selectedMemberIds)
-      : currentUserId ? getRecurringBills(supabase, currentUserId) : Promise.resolve([]),
-    getTransactions(supabase, {
-      householdId: selectedHouseholdId || undefined,
-      userIds: selectedMemberIds.length > 0 ? selectedMemberIds : undefined,
-    }),
+  // One ordered scope read feeds the selected range, cash KPI and forecast.
+  // The cash KPI historically uses only the default range unless dates were explicit.
+  // Noncanonical URL dates retain Postgres parsing/errors instead of lexical comparison.
+  const deriveRange = canDeriveDashboardRange(dateFrom, dateTo);
+  const selectedRangeRequest = deriveRange ? Promise.resolve(null) : getTransactions(supabase, { householdId: selectedHouseholdId || undefined, userIds: selectedMemberIds.length ? selectedMemberIds : undefined, dateFrom, dateTo });
+  const [allScopeTransactions, recurringItems, settings, households, categoryIconMap, creditCards, locale, selectedRange] = await Promise.all([
+    getTransactions(supabase, { householdId: selectedHouseholdId || undefined, userIds: selectedMemberIds.length ? selectedMemberIds : undefined }),
+    selectedHouseholdId ? getHouseholdRecurringBills(supabase, selectedHouseholdId, selectedMemberIds) : currentUserId ? getRecurringBills(supabase, currentUserId) : Promise.resolve([]),
+    user ? getCachedUserSettings(user.id) : Promise.resolve(null),
+    getUserHouseholds(supabase),
+    getCategoryIconMap(supabase),
+    getCardsWithBalance(supabase),
+    getServerLocale(),
+    selectedRangeRequest,
   ]);
+  const derived = deriveRange ? selectDashboardTransactions(allScopeTransactions, dateFrom, dateTo, Boolean(from || to)) : null;
+  const transactions = derived?.transactions ?? selectedRange!;
+  const balanceTransactions = derived?.balanceTransactions ?? (from || to ? allScopeTransactions : transactions);
+  const kpis = calculateKpis(transactions);
+  const cashBalance = calculateCashBalance(balanceTransactions);
+  const currency = settings?.currency ?? "THB";
+  const t = translations[locale];
   const forecastTransactions = selectedHouseholdId || selectedMemberIds.length > 0
     ? allScopeTransactions
     : allScopeTransactions.filter((transaction) => transaction.user_id === currentUserId && !transaction.household_id);
@@ -120,7 +112,7 @@ export default async function DashboardPage({
     householdId: selectedHouseholdId || undefined,
   });
 
-  const households = await getUserHouseholds(supabase);
+
 
   const recentTransactions = transactions.slice(0, 5);
   const recentUserIds = recentTransactions.map((tx) => tx.user_id);
@@ -149,8 +141,8 @@ export default async function DashboardPage({
   }
 
   const categoryBreakdown = calculateCategoryBreakdown(transactions);
-  const categoryIconMap = await getCategoryIconMap(supabase);
-  const creditCards = await getCardsWithBalance(supabase);
+
+
   const typeBreakdown = calculateTypeBreakdown(transactions);
   const filteredForChart = transactions.filter((tx) => tx.date >= dateFrom && tx.date <= dateTo);
   const { data: stackedData, categories: stackedCategories } = calculateStackedBarData(

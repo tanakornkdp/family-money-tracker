@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -28,7 +29,7 @@ import {
   Settings,
 } from "lucide-react";
 import TransactionForm from "@/components/transactions/TransactionForm";
-import CameraEntry from "@/components/mobile/CameraEntry";
+const CameraEntry = dynamic(() => import("@/components/mobile/CameraEntry"), { ssr: false });
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { animateDockWindow } from "@/lib/utils/dockWindowMotion";
 
@@ -177,7 +178,7 @@ export default function MobileNavigation() {
         <button type="button" onClick={(event) => openPanel("menu", event.currentTarget)} aria-haspopup="dialog" aria-expanded={panel === "menu"} className={itemClass}><Menu size={20} />{t.mobile.menu}</button>
       </nav>
       {panel && (
-        <div className={`fixed inset-0 z-50 flex items-center justify-center p-3 motion-safe:transition-colors motion-safe:duration-[460ms] ${closing ? "bg-transparent" : emphasized ? "bg-slate-950/65" : "bg-slate-950/35"}`} onClick={(event) => { if (event.target === event.currentTarget) closePanel(); }}>
+        <div className={`fixed inset-0 z-50 flex items-center justify-center p-3 motion-safe:transition-colors motion-safe:duration-[180ms] ${closing ? "bg-transparent" : emphasized ? "bg-slate-950/65" : "bg-slate-950/35"}`} onClick={(event) => { if (event.target === event.currentTarget) closePanel(); }}>
           <section role="dialog" aria-modal="true" aria-labelledby="mobile-sheet-title" data-state={closing ? "closing" : "open"} tabIndex={-1} ref={dialogRef} className={`max-h-[min(82dvh,calc(100dvh-2rem))] w-full max-w-lg overflow-y-auto overscroll-contain rounded-3xl p-5 text-mobile-ink outline-none data-[state=closing]:pointer-events-none ${emphasized ? "bg-slate-100 shadow-xl dark:bg-slate-950" : "bg-mobile-surface"}`}>
             <div className="mb-4 flex items-center justify-between">
               <div><div className="mx-auto mb-3 h-1.5 w-12 rounded-full bg-slate-300" /><h2 id="mobile-sheet-title" className="text-lg font-bold">{title}</h2></div>

@@ -1,9 +1,10 @@
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/lib/auth/getUser";
 import { createClient } from "@/lib/supabase/server";
 import { getTravelTrips } from "@/services/travelTrips";
 import { getTransactions } from "@/services/transactions";
-import { getUserSettings } from "@/services/userSettings";
+
 import MobileTravelTripDetail from "@/components/mobile/MobileTravelTripDetail";
 import { getUserHouseholds, getHouseholdMembers } from "@/services/households";
 
@@ -12,7 +13,7 @@ export default async function MobileTravelTripPage({ params }: { params: Promise
   const [trips, transactions, settings] = await Promise.all([
     getTravelTrips(supabase, user.id),
     getTransactions(supabase, { userIds: [user.id] }),
-    getUserSettings(supabase, user.id),
+    getCachedUserSettings(user.id),
   ]);
   const trip = trips.find((item) => item.id === id);
   if (!trip) notFound();

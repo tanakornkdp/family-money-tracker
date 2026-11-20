@@ -42,11 +42,11 @@ test('session refresh uses getAll/setAll and preserves multiple cookie batches a
   mockEnvironment(t);
   for(const loggedIn of [true,false]){
     const request=new NextRequest('https://example.test/reports?view=all',{headers:{cookie:'old=value'}});
-    const { updateSession }=loadTsModule('lib/supabase/middleware.ts',{'@supabase/ssr':{createServerClient:(_url,_key,{cookies})=>({auth:{getUser:async()=>{
+    const { updateSession }=loadTsModule('lib/supabase/middleware.ts',{'@supabase/ssr':{createServerClient:(_url,_key,{cookies})=>({auth:{getClaims:async()=>{
       assert.deepEqual(cookies.getAll(),[{name:'old',value:'value'}]);
       cookies.setAll([{name:'auth.0',value:'first',options:{httpOnly:true,path:'/',sameSite:'lax'}}],{'Cache-Control':'private, no-store','Pragma':'no-cache'});
       cookies.setAll([{name:'auth.1',value:'second',options:{path:'/',maxAge:0}}],{'Expires':'0'});
-      return{data:{user:loggedIn?{id:'user'}:null},error:null};
+      return{data:{claims:loggedIn?{sub:'user'}:null},error:null};
     }}})}});
     const response=await updateSession(request);
     assert.equal(response.status,loggedIn?200:307);
@@ -59,7 +59,7 @@ test('session refresh uses getAll/setAll and preserves multiple cookie batches a
 });
 test('money plans and reports are protected at exact path boundaries; preview stays a public redirect',async t=>{
   mockEnvironment(t);
-  const {updateSession}=loadTsModule('lib/supabase/middleware.ts',{'@supabase/ssr':{createServerClient:()=>({auth:{getUser:async()=>({data:{user:null},error:null})}})}});
+  const {updateSession}=loadTsModule('lib/supabase/middleware.ts',{'@supabase/ssr':{createServerClient:()=>({auth:{getClaims:async()=>({data:{claims:null},error:null})}})}});
   for(const path of ['/reports','/reports/month','/money-plans','/money-plans/id'])assert.equal((await updateSession(new NextRequest('https://example.test'+path))).status,307);
   for(const path of ['/reports-public','/money-plans-public','/preview'])assert.equal((await updateSession(new NextRequest('https://example.test'+path))).status,200);
 });

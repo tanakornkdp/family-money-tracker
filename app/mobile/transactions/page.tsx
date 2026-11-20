@@ -1,8 +1,9 @@
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import { requireUser } from "@/lib/auth/getUser";
 import { createClient } from "@/lib/supabase/server";
 import { getTransactions } from "@/services/transactions";
 import { getTripNames } from "@/services/travelTrips";
-import { getUserSettings } from "@/services/userSettings";
+
 import TransactionForm from "@/components/transactions/TransactionForm";
 import Link from "next/link";
 import { getRequestLocale } from "@/lib/i18n/server";
@@ -24,7 +25,7 @@ export default async function MobileTransactions({
   ]);
   const [transactions, settings, cards] = await Promise.all([
     getTransactions(supabase),
-    getUserSettings(supabase, user.id),
+    getCachedUserSettings(user.id),
     getCreditCards(supabase),
   ]);
   const [displayNames, tripNames] = await Promise.all([

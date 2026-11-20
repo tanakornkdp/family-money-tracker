@@ -1,10 +1,11 @@
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import { requireUser } from "@/lib/auth/getUser";
 import { createClient } from "@/lib/supabase/server";
 import { getTransactions, calculateCashBalance } from "@/services/transactions";
 import { getCardsWithBalance } from "@/services/creditCards";
 import { getRecurringBills, getUpcomingOccurrences } from "@/services/recurringBills";
 import { getGoals } from "@/services/goals";
-import { getUserSettings } from "@/services/userSettings";
+
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import Link from "next/link";
 import { ArrowDownToLine, CreditCard, LockKeyhole, ReceiptText, WalletCards } from "lucide-react";
@@ -21,7 +22,7 @@ export default async function MobileWalletPage() {
   const supabase = await createClient();
   const [transactions, cards, recurring, goals, settings] = await Promise.all([
     getTransactions(supabase, { personalOnly: true, userIds: [user.id] }),
-    getCardsWithBalance(supabase), getRecurringBills(supabase, user.id), getGoals(supabase), getUserSettings(supabase, user.id),
+    getCardsWithBalance(supabase), getRecurringBills(supabase, user.id), getGoals(supabase), getCachedUserSettings(user.id),
   ]);
   const currency = settings?.currency ?? "THB";
   const cash = calculateCashBalance(transactions);

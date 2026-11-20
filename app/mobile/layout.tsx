@@ -1,8 +1,8 @@
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import MobileNavigation from "@/components/mobile/MobileNavigation";
 import MobileAccountControls from "@/components/mobile/MobileAccountControls";
 import { requireUser } from "@/lib/auth/getUser";
-import { createClient } from "@/lib/supabase/server";
-import { getUserSettings } from "@/services/userSettings";
+
 import UserPreferencesSync from "@/components/providers/UserPreferencesSync";
 import { cookies } from "next/headers";
 import LockedScreen from "@/components/security/LockedScreen";
@@ -10,8 +10,7 @@ import IdleLockProvider from "@/components/security/IdleLockProvider";
 
 export default async function MobileLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
-  const supabase = await createClient();
-  const settings = await getUserSettings(supabase, user.id);
+  const settings = await getCachedUserSettings(user.id);
   const cookieStore = await cookies();
   if (cookieStore.get("finance_privacy_lock")?.value === "1") return <LockedScreen email={user.email ?? ""}/>;
 

@@ -1,4 +1,5 @@
 "use client";
+import dynamic from "next/dynamic";
 
 import AnimatedSelect from "@/components/ui/AnimatedSelect";
 import { useState, useEffect, useCallback, useRef } from "react";
@@ -11,7 +12,7 @@ import {
 } from "@/services/budgetPlans";
 import { getTransactions } from "@/services/transactions";
 import { BudgetPlan, Household, Transaction, DailyBudgetStatus } from "@/types";
-import BudgetPlanDialog from "./BudgetPlanDialog";
+const BudgetPlanDialog = dynamic(() => import("./BudgetPlanDialog"), { ssr: false });
 import BudgetCalendarGrid from "./BudgetCalendarGrid";
 import Card from "@/components/ui/Card";
 import Button from "@/components/ui/Button";

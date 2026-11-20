@@ -1,7 +1,7 @@
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import Sidebar from "@/components/layout/Sidebar";
 import Topbar from "@/components/layout/Topbar";
-import { createClient } from "@/lib/supabase/server";
-import { getUserSettings } from "@/services/userSettings";
+
 import PageTransition from "@/components/layout/PageTransition";
 import MobileShell from "@/components/layout/MobileShell";
 import { requireUser } from "@/lib/auth/getUser";
@@ -16,8 +16,7 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const user = await requireUser();
-  const supabase = await createClient();
-  const settings = await getUserSettings(supabase, user.id);
+  const settings = await getCachedUserSettings(user.id);
   const cookieStore = await cookies();
   if (cookieStore.get("finance_privacy_lock")?.value === "1") return <LockedScreen email={user.email ?? ""}/>;
 

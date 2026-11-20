@@ -1,9 +1,10 @@
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import { toDateInputValue } from "@/lib/utils/dateHelpers";
 import { requireUser } from "@/lib/auth/getUser";
 import { createClient } from "@/lib/supabase/server";
 import { getBudgetPlans } from "@/services/budgetPlans";
 import { getUserHouseholds } from "@/services/households";
-import { getUserSettings } from "@/services/userSettings";
+
 import BudgetCalendarManager from "@/components/budget/BudgetCalendarManager";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { getTransactions } from "@/services/transactions";
@@ -17,7 +18,7 @@ export default async function MobileBudget({ searchParams }: { searchParams: Pro
   const [plans, households, settings, transactions, defaultLocale] = await Promise.all([
     getBudgetPlans(supabase),
     getUserHouseholds(supabase),
-    getUserSettings(supabase, user.id),
+    getCachedUserSettings(user.id),
     getTransactions(supabase),
     getRequestLocale(),
   ]);

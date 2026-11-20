@@ -60,8 +60,8 @@ export async function updateSession(request: NextRequest) {
   );
 
   try {
-    const { data, error } = await supabase.auth.getUser();
-    if (isProtectedRoute && (error || !data.user)) return redirectToLogin();
+    const { data, error } = await supabase.auth.getClaims();
+    if (isProtectedRoute && (error || !data?.claims?.sub)) return redirectToLogin();
   } catch {
     if (isProtectedRoute) return redirectToLogin();
   }

@@ -1,7 +1,8 @@
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { fetchAllRows } from "../lib/utils/pagination.mjs";
 import type { Category, Household, Transaction } from "@/types";
-import { getDisplayNamesByUserIds, getUserSettings } from "@/services/userSettings";
+import { getDisplayNamesByUserIds } from "@/services/userSettings";
 import { getUserHouseholds, getHouseholdMembers } from "@/services/households";
 import { getCreditCards } from "@/services/creditCards";
 import { filterTransactions } from "@/services/transactionFilters";
@@ -182,7 +183,7 @@ export async function loadExpenseReportData(
   }
 
   const [settings, households, ownCategories, cards] = await Promise.all([
-    getUserSettings(supabase, userId),
+    getCachedUserSettings(userId),
     getUserHouseholds(supabase),
     supabase.from("categories").select("name,type").order("name", { ascending: true }),
     getCreditCards(supabase),

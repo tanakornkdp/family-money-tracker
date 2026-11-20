@@ -1,7 +1,9 @@
+import { getUser } from "@/lib/auth/getUser";
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { getReceipts } from "@/services/receipts";
-import { getUserSettings } from "@/services/userSettings";
+
 import { translations, Locale } from "@/lib/i18n/translations";
 import ReceiptUploader from "@/components/receipts/ReceiptUploader";
 import ReceiptList from "@/components/receipts/ReceiptList";
@@ -14,13 +16,13 @@ async function getServerLocale(): Promise<Locale> {
 
 export default async function ReceiptsPage() {
   const supabase = await createClient();
-  const { data: userData } = await supabase.auth.getUser();
+  const user = await getUser();
   const receipts = await getReceipts(supabase);
   const locale = await getServerLocale();
   const t = translations[locale];
 
-  const settings = userData?.user
-    ? await getUserSettings(supabase, userData.user.id)
+  const settings = user
+    ? await getCachedUserSettings(user.id)
     : null;
   const currency = settings?.currency ?? "THB";
 
@@ -47,7 +49,7 @@ export default async function ReceiptsPage() {
           <h2 className="text-lg font-semibold text-slate-900 dark:text-slate-100 mb-4">
             {t.receipts.history}
           </h2>
-          <ReceiptList receipts={receipts} currency={currency} userId={userData.user?.id ?? ""} />
+          <ReceiptList receipts={receipts} currency={currency} userId={user?.id ?? ""} />
         </div>
       </div>
     </div>

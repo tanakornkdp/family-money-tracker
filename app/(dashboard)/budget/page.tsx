@@ -1,9 +1,10 @@
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import { cookies } from "next/headers";
 import { requireUser } from "@/lib/auth/getUser";
 import { createClient } from "@/lib/supabase/server";
 import { getBudgetPlans } from "@/services/budgetPlans";
 import { getUserHouseholds } from "@/services/households";
-import { getUserSettings } from "@/services/userSettings";
+
 import { translations, Locale } from "@/lib/i18n/translations";
 import BudgetCalendarManager from "@/components/budget/BudgetCalendarManager";
 
@@ -22,7 +23,7 @@ export default async function BudgetPage({ searchParams }: { searchParams: Promi
 
   const plans = await getBudgetPlans(supabase);
   const households = await getUserHouseholds(supabase);
-  const settings = await getUserSettings(supabase, user.id);
+  const settings = await getCachedUserSettings(user.id);
   const currency = settings?.currency ?? "THB";
 
   return (

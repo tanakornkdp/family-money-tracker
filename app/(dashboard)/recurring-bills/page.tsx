@@ -1,9 +1,10 @@
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import { requireUser } from "@/lib/auth/getUser";
 import { createClient } from "@/lib/supabase/server";
 import { getCategories } from "@/services/categories";
 import { getCreditCards } from "@/services/creditCards";
 import { getUserHouseholds } from "@/services/households";
-import { getUserSettings } from "@/services/userSettings";
+
 import { Locale } from "@/lib/i18n/translations";
 import { cookies } from "next/headers";
 import RecurringBillsManager from "@/components/recurring-bills/RecurringBillsManager";
@@ -22,7 +23,7 @@ export default async function RecurringBillsPage() {
   const categories = await getCategories(supabase);
   const creditCards = await getCreditCards(supabase);
   const households = await getUserHouseholds(supabase);
-  const settings = await getUserSettings(supabase, user.id);
+  const settings = await getCachedUserSettings(user.id);
   const currency = settings?.currency ?? "THB";
 
   return (

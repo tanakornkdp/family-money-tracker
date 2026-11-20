@@ -21,3 +21,15 @@ Needs human: migration application and RLS-aware RPC/trigger integration under t
 - [x] Add bilingual receipt/chat privacy notices and document external data flows.
 - [x] Independently review, run 53 offline tests plus lint/type/build using dummy Supabase settings, then commit Phase 2 separately.
 - [ ] Needs human: apply/review the quota migration and verify concurrent calls and deployed permissions. Optional atomic restore skipped pending complete deployed-schema/rollback verification; no database access authorized here.
+
+# Phase 3: performance
+
+- [x] Request-scoped React auth/settings caching with primitive settings keys; API checks retained.
+- [x] Supported SDK getClaims proxy gating, while render/API getUser verification remains.
+- [x] Single normal-path dashboard scope read, range derivation and independent query parallelism; noncanonical URL date queries preserved.
+- [x] Evaluate 3.4 equivalence before shipping: numeric vs JS float regression demonstrates a mismatch. SQL totals deferred under the user's explicit exception.
+- [x] Split Recharts and modal-only code with next/dynamic; preserve chart placeholder geometry and record route-entry sizes before/after.
+- [x] Tune hot-path motion to 180–200 ms and disable number/page/dock/chart animation in reduced motion.
+- [x] Prepare idempotent index migration for verified columns; do not apply it.
+- [x] Independent review, 63 offline tests, lint, type check and dummy-config production build; one Phase 3 commit.
+- [ ] Needs human: deployed query plans/equivalent indexes, index application, auth signing-key/revocation/device checks, and exact totals policy before SQL aggregates.

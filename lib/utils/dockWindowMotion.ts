@@ -1,4 +1,4 @@
-const duration = 460;
+const duration = 180;
 const samples = 20;
 const rows = 8;
 const mix = (from: number, to: number, amount: number) => from + (to - from) * amount;

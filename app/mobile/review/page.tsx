@@ -1,9 +1,10 @@
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import { requireUser } from "@/lib/auth/getUser";
 import { createClient } from "@/lib/supabase/server";
 import { getTransactions } from "@/services/transactions";
 import { getReceipts } from "@/services/receipts";
 import { getRecurringBills, getUpcomingOccurrences } from "@/services/recurringBills";
-import { getUserSettings } from "@/services/userSettings";
+
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import Link from "next/link";
 import DuplicateReviewActions from "@/components/transactions/DuplicateReviewActions";
@@ -17,7 +18,7 @@ export default async function MobileReviewPage() {
   const locale = await getRequestLocale();
   const copy = translations[locale].mobile.reviewPage;
   const user = await requireUser(); const supabase = await createClient();
-  const [transactions, receipts, bills, settings] = await Promise.all([getTransactions(supabase, { userIds: [user.id] }), getReceipts(supabase), getRecurringBills(supabase, user.id), getUserSettings(supabase, user.id)]);
+  const [transactions, receipts, bills, settings] = await Promise.all([getTransactions(supabase, { userIds: [user.id] }), getReceipts(supabase), getRecurringBills(supabase, user.id), getCachedUserSettings(user.id)]);
   const currency = settings?.currency ?? "THB";
   const pendingReceipts = receipts.filter((receipt) => receipt.status === "pending" || receipt.status === "processed" && !receipt.transaction_id);
   const duplicateGroups = new Map<string, typeof transactions>();

@@ -1,7 +1,8 @@
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import { requireUser } from "@/lib/auth/getUser";
 import { createClient } from "@/lib/supabase/server";
 import { getCardsWithBalance } from "@/services/creditCards";
-import { getUserSettings } from "@/services/userSettings";
+
 import { translations, Locale } from "@/lib/i18n/translations";
 import { cookies } from "next/headers";
 import CreditCardsManager from "@/components/credit-cards/CreditCardsManager";
@@ -21,7 +22,7 @@ export default async function CreditCardsPage() {
   const locale = await getServerLocale();
   const t = translations[locale];
   const [settings, transactions, cards] = await Promise.all([
-    getUserSettings(supabase, user.id),
+    getCachedUserSettings(user.id),
     getTransactions(supabase),
     getCardsWithBalance(supabase),
   ]);

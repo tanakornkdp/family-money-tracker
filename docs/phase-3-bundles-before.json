@@ -1,0 +1,32 @@
+{
+  "(dashboard)/dashboard": {
+    "entryChunks": 10,
+    "rawBytes": 838056,
+    "gzipBytes": 239913
+  },
+  "mobile/dashboard": {
+    "entryChunks": 10,
+    "rawBytes": 575246,
+    "gzipBytes": 171417
+  },
+  "(dashboard)/reports": {
+    "entryChunks": 11,
+    "rawBytes": 839017,
+    "gzipBytes": 241382
+  },
+  "mobile/reports": {
+    "entryChunks": 12,
+    "rawBytes": 982047,
+    "gzipBytes": 291186
+  },
+  "mobile/transactions": {
+    "entryChunks": 10,
+    "rawBytes": 592315,
+    "gzipBytes": 177330
+  },
+  "mobile/budget": {
+    "entryChunks": 10,
+    "rawBytes": 590847,
+    "gzipBytes": 175930
+  }
+}

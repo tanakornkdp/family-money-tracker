@@ -1,13 +1,12 @@
+import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import { requireUser } from "@/lib/auth/getUser";
-import { createClient } from "@/lib/supabase/server";
-import { getUserSettings } from "@/services/userSettings";
+
 import SettingsForm from "@/components/settings/SettingsForm";
 import BackupRestore from "@/components/backup/BackupRestore";
 
 export default async function SettingsPage() {
   const user = await requireUser();
-  const supabase = await createClient();
-  const settings = await getUserSettings(supabase, user.id);
+  const settings = await getCachedUserSettings(user.id);
 
   return (
     <div className="space-y-8">
