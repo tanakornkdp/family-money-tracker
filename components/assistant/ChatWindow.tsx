@@ -84,6 +84,7 @@ export default function ChatWindow({ mobileLayout = false }: { mobileLayout?: bo
   return (
     <div className={`flex min-h-0 flex-col overflow-hidden ${mobileLayout ? "flex-1" : "h-full"}`}>
       <div ref={messagesRef} className={`assistant-messages min-h-0 flex-1 overflow-y-auto overscroll-contain pr-1 pb-4 ${mobileLayout ? "flex flex-col gap-4 pt-3 [&>*]:shrink-0" : "space-y-4"}`}>
+        <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">{t.assistant.privacyNotice}</p>
         {messages.map((msg, idx) => (
           <div
             key={idx}

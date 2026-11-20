@@ -1,3 +1,4 @@
+import { apiError } from "@/lib/api/errors";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -27,11 +28,8 @@ export async function GET(request: NextRequest) {
       householdId: householdId || undefined,
     });
     return NextResponse.json({ transactions });
-  } catch {
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  } catch (error) {
+    return apiError(error);
   }
 }
 
@@ -155,9 +153,6 @@ export async function POST(request: NextRequest) {
   } catch (err) {
     const cardError = cardBalanceErrorResponse(err, "POST");
     if (cardError) return NextResponse.json({ error: cardError.error }, { status: cardError.status });
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return apiError(err);
   }
 }

@@ -1,3 +1,4 @@
+import { apiError } from "@/lib/api/errors";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import {
@@ -62,10 +63,7 @@ export async function PATCH(
   } catch (err) {
     const cardError = cardBalanceErrorResponse(err, "PATCH");
     if (cardError) return NextResponse.json({ error: cardError.error }, { status: cardError.status });
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+    return apiError(err);
   }
 }
 
@@ -104,10 +102,7 @@ export async function DELETE(
 
     await deleteTransaction(supabase, id);
     return NextResponse.json({ success: true });
-  } catch {
-    return NextResponse.json(
-      { error: "Internal server error" },
-      { status: 500 }
-    );
+  } catch (error) {
+    return apiError(error);
   }
 }

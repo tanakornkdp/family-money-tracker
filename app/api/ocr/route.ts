@@ -1,3 +1,5 @@
+import { enforceApiRateLimit } from "@/lib/api/rateLimit";
+import { apiError } from "@/lib/api/errors";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { analyzeReceiptImage } from "@/ocr/analyzeReceiptImage";
@@ -41,6 +43,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Receipt not found" }, { status: 404 });
     }
 
+    const limited = await enforceApiRateLimit(supabase, "ocr");
+    if (limited) return limited;
     const { data: signedUrlData, error: signedUrlError } =
       await supabase.storage.from("receipts").createSignedUrl(filePath, 180);
 
@@ -77,9 +81,6 @@ export async function POST(request: NextRequest) {
         .eq("user_id", userData.user.id);
     }
 
-    return NextResponse.json(
-      { error: (err as Error).message },
-      { status: 500 }
-    );
+    return apiError(err);
   }
 }

@@ -1,3 +1,5 @@
+import { enforceApiRateLimit } from "@/lib/api/rateLimit";
+import { financialAnalysisOutputSchema } from "@/lib/validation/aiSchemas";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { completeFreeAI, FreeAIUnavailableError } from "@/lib/ai/freeRouter";
@@ -82,6 +84,8 @@ export async function POST(request: NextRequest) {
       percentage: number;
     }[];
     const period = periodValue;
+    const limited = await enforceApiRateLimit(supabase, "analyze");
+    if (limited) return limited;
     const prompt = `คุณเป็นผู้เชี่ยวชาญด้านการเงินส่วนตัว วิเคราะห์ข้อมูลการเงินต่อไปนี้และให้คำแนะนำเป็นภาษาไทย:
 
 ข้อมูลช่วง ${period}:
@@ -112,7 +116,7 @@ ${topCategories.map((c: { category: string; amount: number; percentage: number }
 
     const text = response.text ?? "{}";
     const clean = text.replace(/```json|```/g, "").trim();
-    const analysis = JSON.parse(clean);
+    const analysis = financialAnalysisOutputSchema.parse(JSON.parse(clean));
 
     return NextResponse.json(analysis);
   } catch (err) {

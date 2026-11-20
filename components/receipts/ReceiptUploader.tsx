@@ -1,5 +1,6 @@
 "use client";
 
+import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
@@ -10,6 +11,7 @@ import { usePathname } from 'next/navigation';
 import type { Receipt } from '@/types';
 
 export default function ReceiptUploader({ initialFile }: { initialFile?: File | null }) {
+  const { t } = useLanguage();
   const router = useRouter();
   const pathname = usePathname();
   const supabase = createClient();
@@ -107,7 +109,7 @@ export default function ReceiptUploader({ initialFile }: { initialFile?: File | 
 
       {error && <p className="text-sm text-red-600">{error}</p>}
       {status && <p role="status" className="text-sm text-slate-500">{status}</p>}
-      <p className="text-xs text-slate-500">ภาพจะเก็บในบัญชีของคุณ และส่งให้ Gemini หรือผู้ให้บริการรุ่นฟรีผ่าน OpenRouter เพื่ออ่านภาพ พร้อมตรวจซ้ำด้วย OCR.space</p>
+      <p className="text-xs leading-relaxed text-slate-500 dark:text-slate-400">{t.receipts.privacyNotice}</p>
       {scan && <ReceiptScanResult scan={scan} href={pathname.startsWith('/mobile') ? '/mobile/receipts' : '/receipts'} />}
 
       <Button

@@ -8,7 +8,7 @@ import { referenceCardBalances } from "./cardBalanceReference.ts";
 const payment = { title: "Food", amount: 100, type: "expense", category: "Food", date: "2026-11-20", payment_method: "debit_card", card_id: "wallet" };
 const auth = async () => ({ data: { user: { id: "user" } } });
 const params = { params: Promise.resolve({ id: "topup" }) };
-const helpers = { "@/lib/validation/cardBalanceError": { cardBalanceErrorResponse }, "@/lib/validation/transactionInput": { validateTransactionInput } };
+const helpers = { "@/lib/api/errors": loadTsModule("lib/api/errors.ts"), "@/lib/validation/cardBalanceError": { cardBalanceErrorResponse }, "@/lib/validation/transactionInput": { validateTransactionInput } };
 test("DELETE delegates the excluded balance and ignores ordinary debit income", async () => {
   const cards = [{ id: "wallet", card_type: "debit" }];
   const rows = [{ id: "topup", card_id: "wallet", amount: 100, type: "expense", category: "เติมเงินวอลเล็ต" }, { id: "income", card_id: "wallet", amount: 999, type: "income", category: "Refund" }];

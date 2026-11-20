@@ -1,3 +1,4 @@
+import { enforceApiRateLimit } from "@/lib/api/rateLimit";
 import { toDateInputValue } from "@/lib/utils/dateHelpers";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -36,6 +37,9 @@ export async function POST(request: NextRequest) {
     ) {
       return NextResponse.json({ error: "Invalid messages" }, { status: 400 });
     }
+    const limited = await enforceApiRateLimit(supabase, "chat");
+    if (limited) return limited;
+
 
     const today = new Date();
     const monthStart = toDateInputValue(new Date(today.getFullYear(), today.getMonth(), 1));

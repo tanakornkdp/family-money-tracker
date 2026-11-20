@@ -10,3 +10,14 @@ Base: `e57ba2103d0122414804b20c66f4569890970a1e` on `codex/mobile-card-preview-2
 - [x] Review, fix findings, rerun required checks, then create exactly one Phase 1 commit. Do not push, deploy, change existing migrations, or access the real database.
 
 Needs human: migration application and RLS-aware RPC/trigger integration under the deployed database roles, including two simultaneous expense writes (card-row lock freshness), repeatable-read behavior and updates between cards. No live DB assertions may be made in this task.
+
+# Phase 2: security and robustness
+
+- [x] Add bounded receipt JSON reading and input/output schemas; preserve AI error contracts.
+- [x] Add atomic authenticated quota migration and shared endpoint guards; test deny, allow, call failures and malformed decisions offline.
+- [x] Consolidate internal error handling without replacing intentional business errors.
+- [x] Replace backup redirects with JSON 401; retain all restore rules.
+- [x] Migrate session cookies to getAll/setAll and preserve refresh cookies/cache headers on redirects. Protect reports/money-plans and inspect preview.
+- [x] Add bilingual receipt/chat privacy notices and document external data flows.
+- [x] Independently review, run 53 offline tests plus lint/type/build using dummy Supabase settings, then commit Phase 2 separately.
+- [ ] Needs human: apply/review the quota migration and verify concurrent calls and deployed permissions. Optional atomic restore skipped pending complete deployed-schema/rollback verification; no database access authorized here.

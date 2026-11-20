@@ -275,6 +275,7 @@ export const translations = {
       noFilteredTransactions: "No transactions found matching the selected criteria.",
     },
     receipts: {
+      privacyNotice: "Receipt images and text may be sent to Groq, Gemini or OpenRouter free-tier AI and OCR.space. OCR may receive a temporary image link. Please check results before saving.",
       title: "Receipt Scanner",
       subtitle: "Upload receipts to extract transaction data automatically",
       upload: "Upload Receipt",
@@ -285,6 +286,7 @@ export const translations = {
       selectImage: "Click to select a receipt image",
     },
     assistant: {
+      privacyNotice: "Your messages and monthly financial summaries may be sent to Groq, Gemini or OpenRouter free-tier AI to generate replies.",
       title: "AI Assistant",
       subtitle: "Ask questions about your spending and get personalized insights",
       placeholder: "Ask about your spending...",
@@ -776,6 +778,7 @@ export const translations = {
       noFilteredTransactions: "ไม่พบรายการที่ตรงกับเงื่อนไขที่เลือก",
     },
     receipts: {
+      privacyNotice: "ภาพและข้อความใบเสร็จอาจส่งให้ AI รุ่นฟรีของ Groq, Gemini หรือ OpenRouter และ OCR.space โดย OCR อาจได้รับลิงก์ภาพชั่วคราว โปรดตรวจผลก่อนบันทึก",
       title: "สแกนใบเสร็จ",
       subtitle: "อัปโหลดใบเสร็จเพื่อดึงข้อมูลรายการโดยอัตโนมัติ",
       upload: "อัปโหลดใบเสร็จ",
@@ -786,6 +789,7 @@ export const translations = {
       selectImage: "คลิกเพื่อเลือกรูปใบเสร็จ",
     },
     assistant: {
+      privacyNotice: "ข้อความและสรุปการเงินรายเดือนของคุณอาจส่งให้ AI รุ่นฟรีของ Groq, Gemini หรือ OpenRouter เพื่อสร้างคำตอบ",
     title: "ผู้ช่วย AI",
     subtitle: "ถามคำถามเกี่ยวกับการใช้จ่ายของคุณและรับข้อมูลเชิงลึกที่ปรับให้เหมาะกับคุณ",
     placeholder: "ถามเกี่ยวกับการใช้จ่ายของคุณ...",

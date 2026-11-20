@@ -34,3 +34,9 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
 
 Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+## AI and receipt privacy
+
+Receipt uploads are stored in the user's Supabase Storage account. The server downloads the image and may send it to free-tier Groq, Gemini or OpenRouter models. Independent OCR.space processing receives image data or a temporary signed Storage URL (180 seconds). Receipt analysis may also send OCR text, category names and the supplied card IDs/names/types to AI. Chat sends the conversation and monthly financial totals/category summaries to the configured AI providers. Providers process these outside this app; their own terms and retention policies apply. Thai/English notices appear at receipt upload and in the assistant. Check extracted results before saving. Provider selection is unchanged. Never put images, receipt text, request bodies, credentials or signed URLs in logs.
+
+AI endpoints enforce authenticated per-user hourly quotas: chat 30, financial analysis 20, receipt analysis 40, OCR 20. Configuration lives in lib/api/rateLimitPolicy.ts. The quota RPC identifies the caller using auth.uid(); authenticated clients cannot access the quota table directly. Quota service errors fail open with a generic server log; known quota denials return 429 and Retry-After. The new migration must be reviewed and applied separately before quotas are active.

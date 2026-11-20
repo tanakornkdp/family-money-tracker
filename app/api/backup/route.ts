@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser } from "@/lib/auth/getUser";
+import { getUser } from "@/lib/auth/getUser";
 import { createClient } from "@/lib/supabase/server";
 import { fetchAllRows } from "../../../lib/utils/pagination.mjs";
 
@@ -9,7 +9,8 @@ type ReceiptBackupFile = { receipt_id: string; content_type: string; base64: str
 type Backup = { format: "family-money-backup"; version: 1 | 2; created_at: string; data: Record<string, Record<string, unknown>[]>; receipt_files?: ReceiptBackupFile[] };
 
 export async function GET() {
-  const user = await requireUser();
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const supabase = await createClient();
   const data: Backup["data"] = {};
   for (const table of TABLES) {
@@ -44,7 +45,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const user = await requireUser();
+  const user = await getUser();
+  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await request.text();
   if (new TextEncoder().encode(body).byteLength > 10_000_000) return NextResponse.json({ error: "Backup file must be 10 MB or smaller." }, { status: 413 });
   let payload: unknown;

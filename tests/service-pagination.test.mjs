@@ -59,7 +59,7 @@ test("mocked RPC result matches the test-only reference for more than 1000 trans
 test("backup includes all transaction rows rather than a silent first page", async () => {
   const records = Array.from({ length: 2501 }, (_, id) => ({ id, user_id: "user", amount: 1 }));
   const client = { from(table) { return { select() { return this; }, eq() { return this; }, order() { return this; }, async range(from, to) { return { data: table === "transactions" ? records.slice(from, to + 1) : [], error: null }; } }; } };
-  const { GET } = loadTsModule("app/api/backup/route.ts", { "@/lib/auth/getUser": { requireUser: async () => ({ id: "user" }) }, "@/lib/supabase/server": { createClient: async () => client } });
+  const { GET } = loadTsModule("app/api/backup/route.ts", { "@/lib/auth/getUser": { getUser: async () => ({ id: "user" }) }, "@/lib/supabase/server": { createClient: async () => client } });
   const response = await GET();
   assert.equal(response.status, 200);
   const backup = await response.json();

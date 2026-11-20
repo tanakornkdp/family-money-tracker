@@ -1,3 +1,6 @@
+import { enforceApiRateLimit } from "@/lib/api/rateLimit";
+import { readJsonBounded, PayloadTooLargeError } from "@/lib/api/readJson";
+import { receiptAnalysisInputSchema, receiptAnalysisOutputSchema, RECEIPT_ANALYSIS_MAX_BYTES } from "@/lib/validation/aiSchemas";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { completeFreeAI, FreeAIUnavailableError } from "@/lib/ai/freeRouter";
@@ -14,12 +17,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const body = await request.json();
-    const { ocrText, categories = [], cards = [] } = body;
-
-    if (!ocrText) {
-      return NextResponse.json({ error: "ocrText is required" }, { status: 400 });
-    }
+    let body: unknown;
+    try { body = await readJsonBounded(request, RECEIPT_ANALYSIS_MAX_BYTES); }
+    catch (error) { return NextResponse.json({ error: error instanceof PayloadTooLargeError ? "Request payload is too large" : "Invalid analysis input" }, { status: error instanceof PayloadTooLargeError ? 413 : 400 }); }
+    const parsed = receiptAnalysisInputSchema.safeParse(body);
+    if (!parsed.success) return NextResponse.json({ error: "Invalid analysis input" }, { status: 400 });
+    const { ocrText, categories, cards } = parsed.data;
+    const limited = await enforceApiRateLimit(supabase, "receipt");
+    if (limited) return limited;
 
     const prompt = `You are an expert receipt analysis assistant. Analyze the following OCR raw text from a receipt.
 Extract transaction details and match them to the user's available categories and credit/debit cards.
@@ -62,7 +67,7 @@ Response:`;
 
     const text = response.text ?? "{}";
     const clean = text.replace(/```json|```/g, "").trim();
-    const analysis = JSON.parse(clean);
+    const analysis = receiptAnalysisOutputSchema(cards).parse(JSON.parse(clean));
 
     return NextResponse.json(analysis);
   } catch (err) {
