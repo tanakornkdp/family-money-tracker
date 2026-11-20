@@ -1,16 +1,14 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Household, HouseholdMember, HouseholdInvite } from "@/types";
+import { fetchAllRows } from "../lib/utils/pagination.mjs";
 
 export async function getUserHouseholds(
   supabase: SupabaseClient
 ): Promise<Household[]> {
-  const { data, error } = await supabase
+  return fetchAllRows<Household>((from, to) => supabase
     .from("households")
     .select("*")
-    .order("created_at", { ascending: true });
-
-  if (error) throw new Error(error.message);
-  return data as Household[];
+    .order("created_at", { ascending: true }).order("id", { ascending: true }).range(from, to));
 }
 
 export async function createHousehold(
@@ -49,14 +47,11 @@ export async function getHouseholdMembers(
   supabase: SupabaseClient,
   householdId: string
 ): Promise<HouseholdMember[]> {
-  const { data, error } = await supabase
+  return fetchAllRows<HouseholdMember>((from, to) => supabase
     .from("household_members")
     .select("*")
     .eq("household_id", householdId)
-    .order("joined_at", { ascending: true });
-
-  if (error) throw new Error(error.message);
-  return data as HouseholdMember[];
+    .order("joined_at", { ascending: true }).order("id", { ascending: true }).range(from, to));
 }
 
 export async function updateHouseholdMemberRole(
@@ -94,14 +89,11 @@ export async function getPendingInvitesForUser(
   supabase: SupabaseClient,
   email: string
 ): Promise<(HouseholdInvite & { households: Household })[]> {
-  const { data, error } = await supabase
+  return fetchAllRows<HouseholdInvite & { households: Household }>((from, to) => supabase
     .from("household_invites")
     .select("*, households(*)")
     .eq("email", email.toLowerCase())
-    .eq("status", "pending");
-
-  if (error) throw new Error(error.message);
-  return data as (HouseholdInvite & { households: Household })[];
+    .eq("status", "pending").order("created_at").order("id").range(from, to));
 }
 
 export async function acceptInvite(

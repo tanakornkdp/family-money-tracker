@@ -1,4 +1,5 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { fetchAllRows } from "../lib/utils/pagination.mjs";
 import type { Category, Household, Transaction } from "@/types";
 import { getDisplayNamesByUserIds, getUserSettings } from "@/services/userSettings";
 import { getUserHouseholds, getHouseholdMembers } from "@/services/households";
@@ -143,27 +144,16 @@ async function getReportTransactions(
   supabase: SupabaseClient,
   options: { userId: string; householdId?: string; memberId?: string; from: string; to: string },
 ): Promise<Transaction[]> {
-  const pageSize = 1000;
-  const result: Transaction[] = [];
-  let offset = 0;
-
-  while (true) {
+  return fetchAllRows<Transaction>((from, to) => {
     let query = supabase.from("transactions").select("*")
       .gte("date", options.from).lte("date", options.to)
-      .order("date", { ascending: true }).order("id", { ascending: true });
+      .order("date", { ascending: true }).order("created_at", { ascending: true }).order("id", { ascending: true });
     if (options.householdId) query = query.eq("household_id", options.householdId);
     else query = query.eq("user_id", options.userId).is("household_id", null);
     if (options.memberId) query = query.eq("user_id", options.memberId);
 
-    const { data, error } = await query.range(offset, offset + pageSize - 1);
-    if (error) throw new Error(error.message);
-    const page = (data ?? []) as Transaction[];
-    result.push(...page);
-    if (page.length < pageSize) break;
-    offset += pageSize;
-  }
-
-  return result;
+    return query.range(from, to);
+  });
 }
 
 type SearchParams = Promise<Record<string, string | string[] | undefined>>;

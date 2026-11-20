@@ -10,6 +10,7 @@ import { getReachedBudgetAlertLevels } from "@/services/budgetPlans";
 import { toDateInputValue } from "@/lib/utils/dateHelpers";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { animateDockWindow } from "@/lib/utils/dockWindowMotion";
+import { fetchAllRows } from "../lib/utils/pagination.mjs";
 
 type Notice = { id: string; kind: "budget" | "bill" | "duplicate" | "receipt" | "transfer" | "invite"; dedupe_key: string; title: string; detail: string; href: string; created_at: string; read_at: string | null };
 const daysFromToday = (days: number) => { const date = new Date(); date.setDate(date.getDate() + days); return toDateInputValue(date); };
@@ -85,15 +86,15 @@ export default function NotificationCenter({ userId, compact = false, expanded, 
     const now = toDateInputValue();
     const [stored, planResult, bills, receipts, transfers, auth, ownTransactions] = await Promise.all([
       supabase.from("user_notifications").select("*").eq("user_id", userId).neq("kind", "duplicate").order("created_at", { ascending: false }).limit(30),
-      supabase.from("budget_plans").select("id,user_id,household_id,name,total_amount,start_date,end_date,category,travel_trip_id,alert_threshold,alert_thresholds"),
+      fetchAllRows((from, to) => supabase.from("budget_plans").select("id,user_id,household_id,name,total_amount,start_date,end_date,category,travel_trip_id,alert_threshold,alert_thresholds").order("start_date").order("id").range(from, to)).then(data => ({ data })).catch(() => ({ data: [] })),
       getRecurringBills(supabase, userId).catch(() => [] as RecurringBill[]),
-      supabase.from("receipts").select("id,parsed_merchant,created_at").eq("user_id", userId).is("transaction_id", null).in("status", ["pending", "processed"]),
-      supabase.from("trip_transfers").select("id,trip_name,amount,created_at").eq("recipient", userId).is("confirmed_at", null),
+      fetchAllRows((from, to) => supabase.from("receipts").select("id,parsed_merchant,created_at").eq("user_id", userId).is("transaction_id", null).in("status", ["pending", "processed"]).order("created_at").order("id").range(from, to)).then(data => ({ data })).catch(() => ({ data: [] })),
+      fetchAllRows((from, to) => supabase.from("trip_transfers").select("id,trip_name,amount,created_at").eq("recipient", userId).is("confirmed_at", null).order("created_at").order("id").range(from, to)).then(data => ({ data })).catch(() => ({ data: [] })),
       supabase.auth.getUser(),
-      supabase.from("transactions").select("title,amount,date").eq("user_id", userId).order("date", { ascending: false }),
+      fetchAllRows((from, to) => supabase.from("transactions").select("title,amount,date").eq("user_id", userId).order("date", { ascending: false }).order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to)).then(data => ({ data })).catch(() => ({ data: [] })),
     ]);
     const email = auth.data.user?.email;
-    const invites = email ? await supabase.from("household_invites").select("id,created_at").eq("email", email.toLowerCase()).eq("status", "pending") : null;
+    const invites = email ? await fetchAllRows((from, to) => supabase.from("household_invites").select("id,created_at").eq("email", email.toLowerCase()).eq("status", "pending").order("created_at").order("id").range(from, to)).then(data => ({ data })).catch(() => ({ data: [] })) : null;
     const grouped = new Map<string, { title: string; date: string; amount: number; count: number }>();
     for (const row of ownTransactions.data ?? []) {
       const key = `${row.date}|${row.title.trim().toLowerCase()}|${Number(row.amount).toFixed(2)}`;
@@ -110,8 +111,7 @@ export default function NotificationCenter({ userId, compact = false, expanded, 
     setAvailable(true);
     const candidates: Omit<Notice, "id" | "created_at" | "read_at">[] = [];
     const firstPlanDate = (planResult.data ?? []).map((plan) => plan.start_date).sort()[0] ?? daysFromToday(-2);
-    const { data: transactions } = await supabase.from("transactions").select("id,user_id,household_id,title,amount,type,category,date,travel_trip_id").gte("date", firstPlanDate < daysFromToday(-2) ? firstPlanDate : daysFromToday(-2)).lte("date", now).order("date", { ascending: false }).limit(5000);
-    const visibleTransactions = transactions ?? [];
+    const visibleTransactions = await fetchAllRows((from, to) => supabase.from("transactions").select("id,user_id,household_id,title,amount,type,category,date,travel_trip_id").gte("date", firstPlanDate < daysFromToday(-2) ? firstPlanDate : daysFromToday(-2)).lte("date", now).order("date", { ascending: false }).order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to), { limit: 5000 }).catch(() => []);
     for (const plan of planResult.data ?? []) {
       const spent = visibleTransactions.filter((tx) => tx.type === "expense" && tx.date >= plan.start_date && tx.date <= now && tx.date <= plan.end_date && (plan.household_id ? tx.household_id === plan.household_id : tx.user_id === userId && !tx.household_id) && (!plan.category || tx.category === plan.category) && (!plan.travel_trip_id || tx.travel_trip_id === plan.travel_trip_id)).reduce((sum, tx) => sum + Number(tx.amount), 0);
       const percent = Number(plan.total_amount) > 0 ? spent / Number(plan.total_amount) * 100 : 0;

@@ -1,5 +1,6 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { TravelTrip } from "@/types";
+import { fetchAllRows } from "../lib/utils/pagination.mjs";
 
 export type TravelTripInput = Pick<
   TravelTrip,
@@ -16,14 +17,11 @@ export async function getTravelTrips(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<TravelTrip[]> {
-  const { data, error } = await supabase
+  return fetchAllRows<TravelTrip>((from, to) => supabase
     .from("travel_trips")
     .select("*")
     .eq("user_id", userId)
-    .order("start_date", { ascending: false });
-
-  if (error) throw new Error(error.message);
-  return (data ?? []) as TravelTrip[];
+    .order("start_date", { ascending: false }).order("id", { ascending: false }).range(from, to));
 }
 
 export async function getTripNames(supabase: SupabaseClient, transactions: { travel_trip_id?: string | null }[]): Promise<Record<string, string>> {

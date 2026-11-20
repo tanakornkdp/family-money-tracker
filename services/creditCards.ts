@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { CreditCard, CardType } from "@/types";
+import { fetchAllRows } from "../lib/utils/pagination.mjs";
 
 export interface CreditCardInput {
   name: string;
@@ -11,13 +12,11 @@ export interface CreditCardInput {
 }
 
 export async function getCreditCards(supabase: SupabaseClient): Promise<CreditCard[]> {
-  const { data, error } = await supabase
+  return fetchAllRows<CreditCard>((from, to) => supabase
     .from("credit_cards")
     .select("*")
-    .order("created_at", { ascending: true });
-
-  if (error) throw new Error(error.message);
-  return data as CreditCard[];
+    .order("created_at", { ascending: true })
+    .order("id", { ascending: true }).range(from, to));
 }
 
 export async function createCreditCard(
@@ -63,47 +62,25 @@ export async function deleteCreditCard(
 
 export async function getCardBalances(
   supabase: SupabaseClient,
-  cards: CreditCard[],
+  cards: readonly Pick<CreditCard, "id">[],
   excludeTransactionId?: string,
 ): Promise<Record<string, number>> {
   if (cards.length === 0) return {};
 
   const cardIds = cards.map((c) => c.id);
-  let query = supabase
-    .from("transactions")
-    .select("card_id, amount, type, category")
-    .in("card_id", cardIds);
-  if (excludeTransactionId) query = query.neq("id", excludeTransactionId);
-
-  const { data, error } = await query;
-
-  if (error) throw new Error(error.message);
+  const data = await fetchAllRows<{ card_id: string; balance: number | string }>((from, to) => supabase
+    .rpc("get_card_balances", { excluded_transaction_id: excludeTransactionId ?? null })
+    .in("card_id", cardIds).order("card_id").range(from, to));
 
   const balances: Record<string, number> = {};
   for (const card of cards) balances[card.id] = 0;
 
-  for (const tx of data as { card_id: string; amount: number; type: string; category: string }[]) {
-    if (!tx.card_id) continue;
-    
-    const card = cards.find((c) => c.id === tx.card_id);
-    
-    if (card?.card_type === "debit") {
-      if (tx.category === "เติมเงินวอลเล็ต") {
-        // เติมเงิน = เพิ่มยอดในบัตร
-        balances[tx.card_id] = (balances[tx.card_id] ?? 0) + Number(tx.amount);
-      } else if (tx.type === "expense") {
-        // ใช้จ่ายผ่านบัตร = ลดยอดในบัตร
-        balances[tx.card_id] = (balances[tx.card_id] ?? 0) - Number(tx.amount);
-      }
-    } else {
-      // credit: expense = ยอดหนี้ (+), income = ชำระ (-)
-      if (tx.type === "expense") {
-        balances[tx.card_id] = (balances[tx.card_id] ?? 0) + Number(tx.amount);
-      } else if (tx.type === "income") {
-        balances[tx.card_id] = (balances[tx.card_id] ?? 0) - Number(tx.amount);
-      }
-    }
+  const found = new Set<string>();
+  for (const row of data) if (Object.hasOwn(balances, row.card_id)) {
+    balances[row.card_id] = Number(row.balance);
+    found.add(row.card_id);
   }
+  if (cards.some(card => !found.has(card.id))) throw new Error("Card balance unavailable");
 
   return balances;
 }

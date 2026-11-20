@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { TransactionTitle, TransactionType } from "@/types";
+import { fetchAllRows } from "../lib/utils/pagination.mjs";
 
 export interface TitleInput {
   name: string;
@@ -10,13 +11,10 @@ export interface TitleInput {
 }
 
 export async function getTitles(supabase: SupabaseClient): Promise<TransactionTitle[]> {
-  const { data, error } = await supabase
+  return fetchAllRows<TransactionTitle>((from, to) => supabase
     .from("transaction_titles")
     .select("*")
-    .order("name", { ascending: true });
-
-  if (error) throw new Error(error.message);
-  return data as TransactionTitle[];
+    .order("name", { ascending: true }).order("id", { ascending: true }).range(from, to));
 }
 
 export async function createTitle(

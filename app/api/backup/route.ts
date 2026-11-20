@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { requireUser } from "@/lib/auth/getUser";
 import { createClient } from "@/lib/supabase/server";
+import { fetchAllRows } from "../../../lib/utils/pagination.mjs";
 
 export const runtime = "nodejs";
 const TABLES = ["user_settings", "categories", "credit_cards", "travel_trips", "financial_goals", "transaction_titles", "budget_plans", "recurring_bills", "transactions", "goal_contributions", "account_reconciliations", "receipts"] as const;
@@ -12,9 +13,15 @@ export async function GET() {
   const supabase = await createClient();
   const data: Backup["data"] = {};
   for (const table of TABLES) {
-    const { data: rows, error } = await supabase.from(table).select("*").eq("user_id", user.id);
-    if (error) return NextResponse.json({ error: `Could not back up ${table}: ${error.message}` }, { status: 500 });
-    data[table] = (rows ?? []) as Record<string, unknown>[];
+    try {
+      data[table] = await fetchAllRows<Record<string, unknown>>((from, to) => {
+        let query = supabase.from(table).select("*").eq("user_id", user.id);
+        if (table === "transactions") query = query.order("date").order("created_at");
+        return query.order(table === "user_settings" ? "user_id" : "id").range(from, to);
+      });
+    } catch {
+      return NextResponse.json({ error: `Could not back up ${table}` }, { status: 500 });
+    }
   }
   const receiptRows = data.receipts ?? [];
   const receiptFiles: ReceiptBackupFile[] = [];

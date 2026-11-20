@@ -11,6 +11,7 @@ import { getActiveTravelTrips } from "@/services/travelTrips";
 import { getExchangeRate, getExchangeRateToThb } from "@/services/travelFx";
 import type { TravelTrip } from "@/types";
 import { getUserSettings } from "@/services/userSettings";
+import { cardBalanceErrorResponse } from "@/lib/validation/cardBalanceError";
 
 export async function GET(request: NextRequest) {
   const supabase = await createClient();
@@ -26,9 +27,9 @@ export async function GET(request: NextRequest) {
       householdId: householdId || undefined,
     });
     return NextResponse.json({ transactions });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
-      { error: (err as Error).message },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -111,7 +112,9 @@ export async function POST(request: NextRequest) {
         input.travel_exchange_rate_to_thb = fxToTripCurrency.rate;
         input.travel_exchange_rate_date = fxToTripCurrency.date;
       } catch (error) {
-        return NextResponse.json({ error: (error as Error).message || "ไม่สามารถแปลงสกุลเงินของทริปได้" }, { status: 502 });
+        const knownMessages = ["สกุลเงินหรือวันที่ไม่ถูกต้อง", "ไม่สามารถดึงอัตราแลกเปลี่ยนอ้างอิงได้", "ไม่พบอัตราแลกเปลี่ยนของสกุลเงินนี้"];
+        const message = error instanceof Error && knownMessages.includes(error.message) ? error.message : "ไม่สามารถแปลงสกุลเงินของทริปได้";
+        return NextResponse.json({ error: message }, { status: 502 });
       }
     } else if (hasTravelAmount || hasTravelCurrency || suppliedRate || suppliedRateDate) {
       return NextResponse.json({ error: "ไม่มีทริปที่กำลังเปิดใช้งาน" }, { status: 409 });
@@ -150,8 +153,10 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({ transaction }, { status: 201 });
   } catch (err) {
+    const cardError = cardBalanceErrorResponse(err, "POST");
+    if (cardError) return NextResponse.json({ error: cardError.error }, { status: cardError.status });
     return NextResponse.json(
-      { error: (err as Error).message },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

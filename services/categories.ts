@@ -1,16 +1,14 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Category, CategoryType } from "@/types";
+import { fetchAllRows } from "../lib/utils/pagination.mjs";
 
 export async function getCategories(
   supabase: SupabaseClient
 ): Promise<Category[]> {
-  const { data, error } = await supabase
+  return fetchAllRows<Category>((from, to) => supabase
     .from("categories")
     .select("*")
-    .order("name", { ascending: true });
-
-  if (error) throw new Error(error.message);
-  return data as Category[];
+    .order("name", { ascending: true }).order("id", { ascending: true }).range(from, to));
 }
 
 export async function createCategory(

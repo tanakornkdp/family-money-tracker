@@ -1,6 +1,7 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Transaction, TransactionType, PaymentMethod } from "@/types";
 import { getPeriodKey, formatPeriodLabel, PeriodGranularity } from "@/lib/utils/dateHelpers";
+import { fetchAllRows } from "../lib/utils/pagination.mjs";
 
 export interface TransactionInput {
   title: string;
@@ -33,39 +34,34 @@ export async function getTransactions(
     dateTo?: string;
   }
 ): Promise<Transaction[]> {
-  let query = supabase
-    .from("transactions")
-    .select("*")
-    .order("date", { ascending: false })
-    .order("created_at", { ascending: false })
-    .order("id", { ascending: false });
+  return fetchAllRows<Transaction>(async (from, to) => {
+    let query = supabase
+      .from("transactions")
+      .select("*")
+      .order("date", { ascending: false })
+      .order("created_at", { ascending: false })
+      .order("id", { ascending: false });
 
-  if (options?.householdId) {
-    query = query.eq("household_id", options.householdId);
-  } else if (options?.personalOnly) {
-    query = query.is("household_id", null);
-  }
+    if (options?.householdId) {
+      query = query.eq("household_id", options.householdId);
+    } else if (options?.personalOnly) {
+      query = query.is("household_id", null);
+    }
 
-  if (options?.userIds && options.userIds.length > 0) {
-    query = query.in("user_id", options.userIds);
-  }
+    if (options?.userIds && options.userIds.length > 0) {
+      query = query.in("user_id", options.userIds);
+    }
 
-  if (options?.dateFrom) {
-    query = query.gte("date", options.dateFrom);
-  }
+    if (options?.dateFrom) {
+      query = query.gte("date", options.dateFrom);
+    }
 
-  if (options?.dateTo) {
-    query = query.lte("date", options.dateTo);
-  }
+    if (options?.dateTo) {
+      query = query.lte("date", options.dateTo);
+    }
 
-  if (options?.limit) {
-    query = query.limit(options.limit);
-  }
-
-  const { data, error } = await query;
-
-  if (error) throw new Error(error.message);
-  return data as Transaction[];
+    return await query.range(from, to);
+  }, { limit: options?.limit || undefined });
 }
 
 export async function createTransaction(
@@ -79,7 +75,7 @@ export async function createTransaction(
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error("Could not create transaction", { cause: error });
   return data as Transaction;
 }
 
@@ -95,7 +91,7 @@ export async function updateTransaction(
     .select()
     .single();
 
-  if (error) throw new Error(error.message);
+  if (error) throw new Error("Could not update transaction", { cause: error });
   return data as Transaction;
 }
 

@@ -4,7 +4,8 @@ import {
   deleteTransaction,
   updateTransaction,
 } from "@/services/transactions";
-import { getCardsWithBalance } from "@/services/creditCards";
+import { getCardBalances, getCardsWithBalance } from "@/services/creditCards";
+import { cardBalanceErrorResponse } from "@/lib/validation/cardBalanceError";
 import { validateTransactionInput } from "@/lib/validation/transactionInput";
 
 export async function PATCH(
@@ -59,8 +60,10 @@ export async function PATCH(
     const transaction = await updateTransaction(supabase, id, validation.data);
     return NextResponse.json({ transaction });
   } catch (err) {
+    const cardError = cardBalanceErrorResponse(err, "PATCH");
+    if (cardError) return NextResponse.json({ error: cardError.error }, { status: cardError.status });
     return NextResponse.json(
-      { error: (err as Error).message },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }
@@ -88,33 +91,22 @@ export async function DELETE(
 
     // ถ้าเป็นรายการเติมเงินวอลเล็ต ตรวจสอบว่าลบแล้วยอดจะติดลบไหม
     if (tx?.category === "เติมเงินวอลเล็ต" && tx?.card_id) {
-      const { data: cardTxs } = await supabase
-        .from("transactions")
-        .select("amount, category")
-        .eq("card_id", tx.card_id);
+      const balances = await getCardBalances(supabase, [{ id: tx.card_id }], id);
+      const balanceAfterDelete = balances[tx.card_id];
 
-      if (cardTxs) {
-        const currentBalance = cardTxs.reduce((sum, t) => {
-          if (t.category === "เติมเงินวอลเล็ต") return sum + Number(t.amount);
-          return sum - Number(t.amount);
-        }, 0);
-
-        const balanceAfterDelete = currentBalance - Number(tx.amount);
-
-        if (balanceAfterDelete < 0) {
-          return NextResponse.json(
-            { error: `ไม่สามารถลบได้ เพราะยอดวอลเล็ตจะติดลบ (คงเหลือหลังลบ: ${balanceAfterDelete.toLocaleString()} บาท)` },
-            { status: 400 }
-          );
-        }
+      if (balanceAfterDelete < 0) {
+        return NextResponse.json(
+          { error: `ไม่สามารถลบได้ เพราะยอดวอลเล็ตจะติดลบ (คงเหลือหลังลบ: ${balanceAfterDelete.toLocaleString()} บาท)` },
+          { status: 400 }
+        );
       }
     }
 
     await deleteTransaction(supabase, id);
     return NextResponse.json({ success: true });
-  } catch (err) {
+  } catch {
     return NextResponse.json(
-      { error: (err as Error).message },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

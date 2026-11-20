@@ -1,13 +1,14 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { FinancialGoal, GoalContribution, GoalType } from "@/types";
 import { getUserProfilesByIds } from "@/services/userSettings";
+import { fetchAllRows } from "../lib/utils/pagination.mjs";
 
 export interface GoalContributionSummary {
   totalAmount: number;
   members: { userId: string; name: string; amount: number }[];
 }
 
-export function aggregateGoalContributions(contributions: GoalContribution[]): Record<string, GoalContributionSummary> {
+export function aggregateGoalContributions(contributions: Pick<GoalContribution, "goal_id" | "user_id" | "amount">[]): Record<string, GoalContributionSummary> {
   const summaries: Record<string, GoalContributionSummary> = {};
   for (const contribution of contributions) {
     const summary = summaries[contribution.goal_id] ??= { totalAmount: 0, members: [] };
@@ -25,9 +26,8 @@ export async function getGoalContributionSummaries(
 ): Promise<Record<string, GoalContributionSummary>> {
   const goalIds = [...new Set(householdGoals.map((goal) => goal.id))];
   if (!goalIds.length) return {};
-  const { data, error } = await supabase.from("goal_contributions").select("goal_id,user_id,amount").in("goal_id", goalIds);
-  if (error) throw new Error(error.message);
-  const summaries = aggregateGoalContributions((data ?? []) as GoalContribution[]);
+  const contributions = await fetchAllRows<Pick<GoalContribution, "goal_id" | "user_id" | "amount">>((from, to) => supabase.from("goal_contributions").select("goal_id,user_id,amount").in("goal_id", goalIds).order("created_at").order("id").range(from, to));
+  const summaries = aggregateGoalContributions(contributions);
   const contributorIds = [...new Set(Object.values(summaries).flatMap((summary) => summary.members.map((member) => member.userId)))];
   const profiles = await getUserProfilesByIds(supabase, contributorIds);
   for (const summary of Object.values(summaries)) {
@@ -46,13 +46,10 @@ export interface GoalInput {
 }
 
 export async function getGoals(supabase: SupabaseClient): Promise<FinancialGoal[]> {
-  const { data, error } = await supabase
+  return fetchAllRows<FinancialGoal>((from, to) => supabase
     .from("financial_goals")
     .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) throw new Error(error.message);
-  return data as FinancialGoal[];
+    .order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to));
 }
 
 export async function createGoal(
@@ -109,12 +106,9 @@ export async function getContributions(
   supabase: SupabaseClient,
   goalId: string
 ): Promise<GoalContribution[]> {
-  const { data, error } = await supabase
+  return fetchAllRows<GoalContribution>((from, to) => supabase
     .from("goal_contributions")
     .select("*")
     .eq("goal_id", goalId)
-    .order("created_at", { ascending: false });
-
-  if (error) throw new Error(error.message);
-  return data as GoalContribution[];
+    .order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to));
 }

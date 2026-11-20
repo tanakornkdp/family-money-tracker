@@ -1,6 +1,7 @@
 import { toDateInputValue } from "@/lib/utils/dateHelpers";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { BudgetPlan, DailyBudgetStatus, Transaction } from "@/types";
+import { fetchAllRows } from "../lib/utils/pagination.mjs";
 
 export interface BudgetPlanInput {
   name: string;
@@ -22,13 +23,10 @@ export function getReachedBudgetAlertLevels(percentUsed: number, configuredLevel
 }
 
 export async function getBudgetPlans(supabase: SupabaseClient): Promise<BudgetPlan[]> {
-  const { data, error } = await supabase
+  return fetchAllRows<BudgetPlan>((from, to) => supabase
     .from("budget_plans")
     .select("*")
-    .order("start_date", { ascending: false });
-
-  if (error) throw new Error(error.message);
-  return data as BudgetPlan[];
+    .order("start_date", { ascending: false }).order("id", { ascending: false }).range(from, to));
 }
 
 export async function getActiveBudgetPlan(

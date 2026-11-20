@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { Receipt } from "@/types";
+import { fetchAllRows } from "../lib/utils/pagination.mjs";
 
 export async function uploadReceiptFile(
   supabase: SupabaseClient,
@@ -43,13 +44,10 @@ export async function createReceiptRecord(
 export async function getReceipts(
   supabase: SupabaseClient
 ): Promise<Receipt[]> {
-  const { data, error } = await supabase
+  return fetchAllRows<Receipt>((from, to) => supabase
     .from("receipts")
     .select("*")
-    .order("created_at", { ascending: false });
-
-  if (error) throw new Error(error.message);
-  return data as Receipt[];
+    .order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to));
 }
 
 export async function getReceiptSignedUrl(

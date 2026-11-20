@@ -1,6 +1,7 @@
 import type { PaymentMethod, TransactionType } from "@/types";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { toDateInputValue } from "@/lib/utils/dateHelpers";
+import { fetchAllRows } from "../lib/utils/pagination.mjs";
 
 export interface RecurringBill {
   id: string;
@@ -83,11 +84,11 @@ export async function getRecurringBills(
 ): Promise<RecurringBill[]> {
   if (!userId) return [];
   const loadFromDatabase = async () => {
-    let query = supabase.from("recurring_bills").select("*").order("start_date");
-    if (!includeShared) query = query.eq("user_id", userId);
-    const { data, error } = await query;
-    if (error) throw new Error(error.message);
-    return (data ?? []) as RecurringBill[];
+    return fetchAllRows<RecurringBill>((from, to) => {
+      let query = supabase.from("recurring_bills").select("*").order("start_date").order("id");
+      if (!includeShared) query = query.eq("user_id", userId);
+      return query.range(from, to);
+    });
   };
   if (typeof window !== "undefined") {
     const migratedKey = `${storageKey(userId)}:migrated`;
@@ -123,11 +124,11 @@ export async function getHouseholdRecurringBills(
   householdId: string,
   memberIds: string[],
 ): Promise<RecurringBill[]> {
-  let query = supabase.from("recurring_bills").select("*").eq("household_id", householdId);
-  if (memberIds.length) query = query.in("user_id", memberIds);
-  const { data, error } = await query;
-  if (error) throw new Error(error.message);
-  return (data ?? []) as RecurringBill[];
+  return fetchAllRows<RecurringBill>((from, to) => {
+    let query = supabase.from("recurring_bills").select("*").eq("household_id", householdId).order("start_date").order("id");
+    if (memberIds.length) query = query.in("user_id", memberIds);
+    return query.range(from, to);
+  });
 }
 
 export async function addRecurringBill(

@@ -1,5 +1,6 @@
 import { SupabaseClient } from "@supabase/supabase-js";
 import { UserSettings } from "@/types";
+import { fetchAllRows } from "../lib/utils/pagination.mjs";
 
 export async function getUserSettings(
   supabase: SupabaseClient,
@@ -72,12 +73,10 @@ export async function getDisplayNamesByUserIds(
   const uniqueIds = Array.from(new Set(userIds));
   if (uniqueIds.length === 0) return {};
 
-  const { data, error } = await supabase
+  const data = await fetchAllRows<{ user_id: string; full_name: string | null }>((from, to) => supabase
     .from("user_settings")
     .select("user_id, full_name")
-    .in("user_id", uniqueIds);
-
-  if (error) throw new Error(error.message);
+    .in("user_id", uniqueIds).order("user_id").range(from, to));
 
   const map: Record<string, string> = {};
   for (const row of data as { user_id: string; full_name: string | null }[]) {
@@ -93,12 +92,10 @@ export async function getUserProfilesByIds(
   const uniqueIds = Array.from(new Set(userIds));
   if (uniqueIds.length === 0) return {};
 
-  const { data, error } = await supabase
+  const data = await fetchAllRows<{ user_id: string; full_name: string | null; avatar_url: string | null }>((from, to) => supabase
     .from("user_settings")
     .select("user_id, full_name, avatar_url")
-    .in("user_id", uniqueIds);
-
-  if (error) throw new Error(error.message);
+    .in("user_id", uniqueIds).order("user_id").range(from, to));
 
   const map: Record<string, { name: string; avatarUrl: string | null }> = {};
   for (const row of data as { user_id: string; full_name: string | null; avatar_url: string | null }[]) {

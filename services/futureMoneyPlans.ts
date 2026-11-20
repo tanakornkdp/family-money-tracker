@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import type { FuturePlan, FuturePlanEvent, FuturePlanLink } from "@/lib/validation/futureMoneyPlans";
 import type { CreditCard, FinancialGoal, Household, Transaction, TravelTrip } from "@/types";
+import { fetchAllRows } from "../lib/utils/pagination.mjs";
 
 export type PlanContribution = { id: string; goal_id: string; user_id: string; amount: number; note: string | null; created_at: string; household_id?: string | null };
 export type FuturePlanData = {
@@ -23,15 +24,18 @@ export async function getAllFuturePlanLinks(client: SupabaseClient) {
   return { data: links, error: null };
 }
 export async function getFuturePlanData(client: SupabaseClient): Promise<FuturePlanData> {
+  const all = async <T>(load: (from: number, to: number) => PromiseLike<{ data: T[] | null; error: { message: string } | null }>) => ({ data: await fetchAllRows(load), error: null });
   const results = await Promise.all([
-    client.from("future_money_plans").select("*").order("updated_at", { ascending: false }),
+    all<FuturePlan>((from, to) => client.from("future_money_plans").select("*").order("updated_at", { ascending: false }).order("id", { ascending: false }).range(from, to)),
     getAllFuturePlanLinks(client),
     client.from("future_money_plan_events").select("*").order("created_at", { ascending: false }).limit(200),
-    client.from("households").select("*").order("created_at"),
-    client.from("credit_cards").select("*"), client.from("financial_goals").select("*"),
-    client.from("travel_trips").select("*"), client.from("categories").select("name"),
-    client.from("transactions").select("*").order("date", { ascending: false }).order("created_at", { ascending: false }),
-    client.from("goal_contributions").select("id,goal_id,user_id,amount,note,created_at").order("created_at", { ascending: false }),
+    all<Household>((from, to) => client.from("households").select("*").order("created_at").order("id").range(from, to)),
+    all<CreditCard>((from, to) => client.from("credit_cards").select("*").order("created_at").order("id").range(from, to)),
+    all<FinancialGoal>((from, to) => client.from("financial_goals").select("*").order("created_at").order("id").range(from, to)),
+    all<TravelTrip>((from, to) => client.from("travel_trips").select("*").order("start_date").order("id").range(from, to)),
+    all<{ name: string }>((from, to) => client.from("categories").select("name").order("name").order("id").range(from, to)),
+    all<Transaction>((from, to) => client.from("transactions").select("*").order("date", { ascending: false }).order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to)),
+    all<PlanContribution>((from, to) => client.from("goal_contributions").select("id,goal_id,user_id,amount,note,created_at").order("created_at", { ascending: false }).order("id", { ascending: false }).range(from, to)),
   ]);
   for (const result of results) if (result.error) throw new Error(result.error.message);
   const [plans, links, events, households, cards, goals, trips, categories, transactions, contributions] = results.map(result => result.data ?? []);
