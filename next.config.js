@@ -1,3 +1,4 @@
+const allowedDevOrigins = (process.env.ALLOWED_DEV_ORIGINS ?? "").split(",").map(origin => origin.trim()).filter(Boolean);
 const useReportFixture = process.env.E2E_REPORT_FIXTURE === "1";
 const useLocalFixtureProxy = useReportFixture &&
   process.env.NODE_ENV === "development" &&
@@ -12,7 +13,7 @@ if (process.env.VERCEL === "1" && (useReportFixture || process.env.FINANCE_DEMO 
 const nextConfig = {
   output: 'standalone',
   reactStrictMode: true,
-  allowedDevOrigins: ["192.168.1.63"],
+  ...(allowedDevOrigins.length ? { allowedDevOrigins } : {}),
   ...(useReportFixture ? { distDir: ".next/report-fixture" } : {}),
   ...(useLocalFixtureProxy ? {
     env: { NEXT_PUBLIC_SUPABASE_BROWSER_PROXY: "/__local_fixture" },

@@ -33,3 +33,15 @@ Needs human: migration application and RLS-aware RPC/trigger integration under t
 - [x] Prepare idempotent index migration for verified columns; do not apply it.
 - [x] Independent review, 63 offline tests, lint, type check and dummy-config production build; one Phase 3 commit.
 - [ ] Needs human: deployed query plans/equivalent indexes, index application, auth signing-key/revocation/device checks, and exact totals policy before SQL aggregates.
+
+# Phase 4: repository hygiene
+
+- [x] Confirm active next.config.js, delete the unused TS config, use optional comma-separated ALLOWED_DEV_ORIGINS and retain standalone output.
+- [x] Grep dead module/import usage; delete the three legacy modules and four unused AI SDK dependencies plus legacy provider-key references.
+- [x] Align eslint-config-next and its plugin to Next.js 16.4.6; update the lockfile.
+- [x] Add npm test. Preserve/report missing demo and Playwright harness prerequisites without fabricating files.
+- [x] Add a safe complete .env.example and gitignore exception; replace README with actual setup/migrations/scripts/privacy/quota documentation.
+- [x] Independent review, 63 offline tests, lint, type check and dummy-config production build. Local config and lockfile checks pass.
+- [ ] Needs human: recover/configure missing demo/browser harness and obtain baseline schema/migration history for new environments. Existing live verification and aggregate/restore deferrals remain.
+
+- [x] Phase 4 audit regression addressed with compatible TypeScript ESLint/minimatch updates; npm audit reports 0 vulnerabilities.
