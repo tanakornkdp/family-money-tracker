@@ -45,3 +45,12 @@ Needs human: migration application and RLS-aware RPC/trigger integration under t
 - [ ] Needs human: recover/configure missing demo/browser harness and obtain baseline schema/migration history for new environments. Existing live verification and aggregate/restore deferrals remain.
 
 - [x] Phase 4 audit regression addressed with compatible TypeScript ESLint/minimatch updates; npm audit reports 0 vulnerabilities.
+
+# Phase 5: final verification and report
+
+- [x] Fresh npm run lint, npx tsc --noEmit and dummy-config npm run build passed; active next.config.js confirmed.
+- [x] Fresh npm test passed 63/63; direct node tests/future-money-plans.test.mjs passed 9/9. Fresh npm audit reported 0 vulnerabilities.
+- [x] Captured final route-entry sizes in docs/phase-5-bundles-final.json and compared them to the pre-performance build snapshot.
+- [x] Consolidated per-task done/partial/skipped status, changed-file inventory and qualified code-derived Supabase calls in docs/final-review-report.md.
+- [x] Explicit Needs human covers backup/staging migrations, region alignment, baseline public/private schema, user-deletion FKs, missing demo/Playwright harness, AI/OCR privacy terms and earlier implementation/live-test deferrals.
+- [x] Independent report review found no important inaccuracies. Keep the branch and worktree; no database/deployment/push/integration action was performed.
