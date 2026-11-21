@@ -24,3 +24,15 @@ Ruling: PATCH still checks that a selected card is visible. Non-increasing edits
 Ruling: Existing-id INSERT exclusion is checked after the advisory lock, so a waiting writer can see a committed same-ID row at READ COMMITTED. All INSERTs still follow the requested insertion rule; legacy over-limit upsert no-ops are not silently reclassified as UPDATEs.
 
 Verification: lint, tsc, 76/76 offline tests and dummy-config build passed. Independent static/code review found no important issues. SQL was not executed: psql/postgres/docker were not found on PATH. Detailed evidence and staging cases are in docs/card-limit-trigger-fixes.md.
+
+# Phase 2: staging verification assets
+
+- [x] Rechecked psql/postgres/docker: none found on PATH. No SQL scenarios can be executed here.
+- [x] Add rollback-only authenticated role/claim SQL asset for all eight requested cases, with fixture prerequisites and strict expected-code assertions.
+- [x] Document two overlapping psql sessions, required winner COMMIT, exact loser rejection, verification and narrowly scoped cleanup.
+- [x] Add tickable staging backup/migration/SQL/concurrency/restore/member/dashboard checklist, expected results and evidence blanks.
+- [x] Review assets, run lint/tsc/npm test/dummy-config build and commit Phase 2 separately. Human-run results remain blank, not marked passed.
+
+Phase 2 rulings: the rollback-only suite uses five dedicated cards and a pre-created legacy over-limit row; it does not invent missing baseline RLS/columns or disable protections. Concurrent-writer testing requires a separately committed fixture and winner, unlike the rollback-only suite. API restore uses a separate no-legacy account so the intentionally rejected over-limit INSERT case cannot mask the near-limit upsert test.
+
+Phase 2 verification: all four required application gates passed (76/76 unit tests); static asset source guards passed. Independent review found no important issue. The staging SQL suite, two-session concurrency, HTTP restore and device smoke tests were not executed.
