@@ -2,6 +2,8 @@
 
 A Thai/English personal and household finance app built with Next.js 16 App Router, React 19, TypeScript, Tailwind 4 and Supabase. It includes transactions, credit/debit cards and wallets, budgets, recurring bills, shared households, savings goals, trips and expense splitting, reports, receipt scanning and an AI assistant. Desktop (`/dashboard`) and mobile (`/mobile/dashboard`) have separate interfaces backed by the same authenticated data.
 
+For signup OTP setup and email delivery requirements, see [Registration OTP](docs/registration-otp.md). Hosted templates and custom SMTP must be configured separately; committing the HTML does not configure Supabase.
+
 ## Local setup
 
 Use Node.js 24 and npm. The offline tests import TypeScript directly and were verified with Node 24.
