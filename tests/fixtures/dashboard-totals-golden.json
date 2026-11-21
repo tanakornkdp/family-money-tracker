@@ -1,0 +1,470 @@
+[
+  {
+    "name": "all",
+    "options": {},
+    "expected": {
+      "cashBalance": 1019.95,
+      "rangeCashBalance": 1019.95,
+      "personalCashBalance": 929.9,
+      "kpis": {
+        "totalIncome": 1126.3,
+        "totalExpense": 91.35,
+        "balance": 1034.95,
+        "transactionCount": 1025
+      },
+      "incomeCount": 7,
+      "expenseCount": 1018,
+      "accountCashBalance": 1033.9,
+      "bankBalance": 4,
+      "topCategories": [
+        {
+          "category": "Bill",
+          "amount": 52
+        },
+        {
+          "category": "Food",
+          "amount": 21
+        },
+        {
+          "category": "Micro",
+          "amount": 10.04999999999983
+        },
+        {
+          "category": "Travel",
+          "amount": 7.1
+        }
+      ]
+    }
+  },
+  {
+    "name": "range",
+    "options": {
+      "dateFrom": "2026-11-01",
+      "dateTo": "2026-11-15"
+    },
+    "expected": {
+      "cashBalance": 1019.95,
+      "rangeCashBalance": 72,
+      "personalCashBalance": 929.9,
+      "kpis": {
+        "totalIncome": 116.3,
+        "totalExpense": 31.3,
+        "balance": 85,
+        "transactionCount": 16
+      },
+      "incomeCount": 5,
+      "expenseCount": 11,
+      "accountCashBalance": 1033.9,
+      "bankBalance": 4,
+      "topCategories": [
+        {
+          "category": "Bill",
+          "amount": 52
+        },
+        {
+          "category": "Food",
+          "amount": 21
+        },
+        {
+          "category": "Micro",
+          "amount": 10.04999999999983
+        },
+        {
+          "category": "Travel",
+          "amount": 7.1
+        }
+      ]
+    }
+  },
+  {
+    "name": "personal",
+    "options": {
+      "personalOnly": true,
+      "userIds": [
+        "11111111-1111-4111-8111-111111111111"
+      ],
+      "dateFrom": "2026-11-01",
+      "dateTo": "2026-11-15"
+    },
+    "expected": {
+      "cashBalance": 929.9,
+      "rangeCashBalance": -18.05,
+      "personalCashBalance": 929.9,
+      "kpis": {
+        "totalIncome": 4.3,
+        "totalExpense": 21.35,
+        "balance": -17.05,
+        "transactionCount": 8
+      },
+      "incomeCount": 3,
+      "expenseCount": 5,
+      "accountCashBalance": 933.9,
+      "bankBalance": 4,
+      "topCategories": [
+        {
+          "category": "Bill",
+          "amount": 52
+        },
+        {
+          "category": "Food",
+          "amount": 12.25
+        },
+        {
+          "category": "Micro",
+          "amount": 10.04999999999983
+        },
+        {
+          "category": "Travel",
+          "amount": 7.1
+        }
+      ]
+    }
+  },
+  {
+    "name": "household",
+    "options": {
+      "householdId": "44444444-4444-4444-8444-444444444444",
+      "dateFrom": "2026-11-01",
+      "dateTo": "2026-11-15"
+    },
+    "expected": {
+      "cashBalance": 90.05,
+      "rangeCashBalance": 90.05,
+      "personalCashBalance": 0,
+      "kpis": {
+        "totalIncome": 112,
+        "totalExpense": 9.95,
+        "balance": 102.05,
+        "transactionCount": 8
+      },
+      "incomeCount": 2,
+      "expenseCount": 6,
+      "accountCashBalance": 100,
+      "bankBalance": 0,
+      "topCategories": [
+        {
+          "category": "Food",
+          "amount": 8.75
+        },
+        {
+          "category": "Alpha",
+          "amount": 0.30000000000000004
+        },
+        {
+          "category": "Delta",
+          "amount": 0.3
+        },
+        {
+          "category": "Gamma",
+          "amount": 0.3
+        }
+      ]
+    }
+  },
+  {
+    "name": "member",
+    "options": {
+      "householdId": "44444444-4444-4444-8444-444444444444",
+      "userIds": [
+        "22222222-2222-4222-8222-222222222222"
+      ],
+      "dateFrom": "2026-11-01",
+      "dateTo": "2026-11-15"
+    },
+    "expected": {
+      "cashBalance": -9.95,
+      "rangeCashBalance": -9.95,
+      "personalCashBalance": 0,
+      "kpis": {
+        "totalIncome": 12,
+        "totalExpense": 9.95,
+        "balance": 2.05,
+        "transactionCount": 7
+      },
+      "incomeCount": 1,
+      "expenseCount": 6,
+      "accountCashBalance": 0,
+      "bankBalance": 0,
+      "topCategories": [
+        {
+          "category": "Food",
+          "amount": 8.75
+        },
+        {
+          "category": "Alpha",
+          "amount": 0.30000000000000004
+        },
+        {
+          "category": "Delta",
+          "amount": 0.3
+        },
+        {
+          "category": "Gamma",
+          "amount": 0.3
+        }
+      ]
+    }
+  },
+  {
+    "name": "emptyMembers",
+    "options": {
+      "householdId": "44444444-4444-4444-8444-444444444444",
+      "userIds": []
+    },
+    "expected": {
+      "cashBalance": 90.05,
+      "rangeCashBalance": 90.05,
+      "personalCashBalance": 0,
+      "kpis": {
+        "totalIncome": 112,
+        "totalExpense": 9.95,
+        "balance": 102.05,
+        "transactionCount": 8
+      },
+      "incomeCount": 2,
+      "expenseCount": 6,
+      "accountCashBalance": 100,
+      "bankBalance": 0,
+      "topCategories": [
+        {
+          "category": "Food",
+          "amount": 8.75
+        },
+        {
+          "category": "Alpha",
+          "amount": 0.30000000000000004
+        },
+        {
+          "category": "Delta",
+          "amount": 0.3
+        },
+        {
+          "category": "Gamma",
+          "amount": 0.3
+        }
+      ]
+    }
+  },
+  {
+    "name": "householdWins",
+    "options": {
+      "householdId": "44444444-4444-4444-8444-444444444444",
+      "personalOnly": true
+    },
+    "expected": {
+      "cashBalance": 90.05,
+      "rangeCashBalance": 90.05,
+      "personalCashBalance": 0,
+      "kpis": {
+        "totalIncome": 112,
+        "totalExpense": 9.95,
+        "balance": 102.05,
+        "transactionCount": 8
+      },
+      "incomeCount": 2,
+      "expenseCount": 6,
+      "accountCashBalance": 100,
+      "bankBalance": 0,
+      "topCategories": [
+        {
+          "category": "Food",
+          "amount": 8.75
+        },
+        {
+          "category": "Alpha",
+          "amount": 0.30000000000000004
+        },
+        {
+          "category": "Delta",
+          "amount": 0.3
+        },
+        {
+          "category": "Gamma",
+          "amount": 0.3
+        }
+      ]
+    }
+  },
+  {
+    "name": "memberAcrossScopes",
+    "options": {
+      "userIds": [
+        "11111111-1111-4111-8111-111111111111"
+      ]
+    },
+    "expected": {
+      "cashBalance": 1029.9,
+      "rangeCashBalance": 1029.9,
+      "personalCashBalance": 929.9,
+      "kpis": {
+        "totalIncome": 1114.3,
+        "totalExpense": 81.4,
+        "balance": 1032.9,
+        "transactionCount": 1018
+      },
+      "incomeCount": 6,
+      "expenseCount": 1012,
+      "accountCashBalance": 1033.9,
+      "bankBalance": 4,
+      "topCategories": [
+        {
+          "category": "Bill",
+          "amount": 52
+        },
+        {
+          "category": "Food",
+          "amount": 12.25
+        },
+        {
+          "category": "Micro",
+          "amount": 10.04999999999983
+        },
+        {
+          "category": "Travel",
+          "amount": 7.1
+        }
+      ]
+    }
+  },
+  {
+    "name": "emptyRange",
+    "options": {
+      "dateFrom": "2027-01-01",
+      "dateTo": "2027-01-31"
+    },
+    "expected": {
+      "cashBalance": 1019.95,
+      "rangeCashBalance": 0,
+      "personalCashBalance": 929.9,
+      "kpis": {
+        "totalIncome": 0,
+        "totalExpense": 0,
+        "balance": 0,
+        "transactionCount": 0
+      },
+      "incomeCount": 0,
+      "expenseCount": 0,
+      "accountCashBalance": 1033.9,
+      "bankBalance": 4,
+      "topCategories": [
+        {
+          "category": "Bill",
+          "amount": 52
+        },
+        {
+          "category": "Food",
+          "amount": 21
+        },
+        {
+          "category": "Micro",
+          "amount": 10.04999999999983
+        },
+        {
+          "category": "Travel",
+          "amount": 7.1
+        }
+      ]
+    }
+  },
+  {
+    "name": "emptyScope",
+    "options": {
+      "householdId": "55555555-5555-4555-8555-555555555555"
+    },
+    "expected": {
+      "cashBalance": 0,
+      "rangeCashBalance": 0,
+      "personalCashBalance": 0,
+      "kpis": {
+        "totalIncome": 0,
+        "totalExpense": 0,
+        "balance": 0,
+        "transactionCount": 0
+      },
+      "incomeCount": 0,
+      "expenseCount": 0,
+      "accountCashBalance": 0,
+      "bankBalance": 0,
+      "topCategories": []
+    }
+  },
+  {
+    "name": "oneSided",
+    "options": {
+      "dateFrom": "2026-11-15"
+    },
+    "expected": {
+      "cashBalance": 1019.95,
+      "rangeCashBalance": -41.1,
+      "personalCashBalance": 929.9,
+      "kpis": {
+        "totalIncome": 10,
+        "totalExpense": 51.1,
+        "balance": -41.1,
+        "transactionCount": 5
+      },
+      "incomeCount": 1,
+      "expenseCount": 4,
+      "accountCashBalance": 1033.9,
+      "bankBalance": 4,
+      "topCategories": [
+        {
+          "category": "Bill",
+          "amount": 52
+        },
+        {
+          "category": "Food",
+          "amount": 21
+        },
+        {
+          "category": "Micro",
+          "amount": 10.04999999999983
+        },
+        {
+          "category": "Travel",
+          "amount": 7.1
+        }
+      ]
+    }
+  },
+  {
+    "name": "reverseRange",
+    "options": {
+      "dateFrom": "2026-11-16",
+      "dateTo": "2026-11-01"
+    },
+    "expected": {
+      "cashBalance": 1019.95,
+      "rangeCashBalance": 0,
+      "personalCashBalance": 929.9,
+      "kpis": {
+        "totalIncome": 0,
+        "totalExpense": 0,
+        "balance": 0,
+        "transactionCount": 0
+      },
+      "incomeCount": 0,
+      "expenseCount": 0,
+      "accountCashBalance": 1033.9,
+      "bankBalance": 4,
+      "topCategories": [
+        {
+          "category": "Bill",
+          "amount": 52
+        },
+        {
+          "category": "Food",
+          "amount": 21
+        },
+        {
+          "category": "Micro",
+          "amount": 10.04999999999983
+        },
+        {
+          "category": "Travel",
+          "amount": 7.1
+        }
+      ]
+    }
+  }
+]

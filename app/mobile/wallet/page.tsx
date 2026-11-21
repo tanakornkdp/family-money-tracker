@@ -1,7 +1,7 @@
 import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import { requireUser } from "@/lib/auth/getUser";
 import { createClient } from "@/lib/supabase/server";
-import { getTransactions, calculateCashBalance } from "@/services/transactions";
+import { getDashboardTotals } from "@/services/dashboardTotals";
 import { getCardsWithBalance } from "@/services/creditCards";
 import { getRecurringBills, getUpcomingOccurrences } from "@/services/recurringBills";
 import { getGoals } from "@/services/goals";
@@ -20,12 +20,12 @@ export default async function MobileWalletPage() {
   const copy = translations[locale].mobile.walletPage;
   const user = await requireUser();
   const supabase = await createClient();
-  const [transactions, cards, recurring, goals, settings] = await Promise.all([
-    getTransactions(supabase, { personalOnly: true, userIds: [user.id] }),
+  const [totals, cards, recurring, goals, settings] = await Promise.all([
+    getDashboardTotals(supabase, { personalOnly: true, userIds: [user.id] }),
     getCardsWithBalance(supabase), getRecurringBills(supabase, user.id), getGoals(supabase), getCachedUserSettings(user.id),
   ]);
   const currency = settings?.currency ?? "THB";
-  const cash = calculateCashBalance(transactions);
+  const cash = totals.cashBalance;
   const held = goals.filter((goal) => goal.status === "active").reduce((sum, goal) => sum + Math.max(0, Number(goal.target_amount) - Number(goal.current_amount)), 0);
   const creditHeld = cards.reduce((sum, card) => sum + (card.card_type === "credit" ? Number(card.balance) : 0), 0);
   const start = new Date().toISOString().slice(0, 10); const end = dateAfter(31);

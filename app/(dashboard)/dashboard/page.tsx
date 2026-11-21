@@ -1,16 +1,14 @@
-import { selectDashboardTransactions, canDeriveDashboardRange } from "@/lib/utils/dashboardTransactions";
+import { getDashboardTotals, getForecastTransactions } from "@/services/dashboardTotals";
 import { getUser } from "@/lib/auth/getUser";
 import { getCachedUserSettings } from "@/lib/auth/requestSettings";
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import {
   getTransactions,
-  calculateKpis,
   calculateMemberBreakdown,
   calculateCategoryBreakdown,
   calculateTypeBreakdown,
   calculateStackedBarData,
-  calculateCashBalance,
 } from "@/services/transactions";
 import { getDisplayNamesByUserIds, getUserProfilesByIds } from "@/services/userSettings";
 import { getUserHouseholds, getHouseholdMembers } from "@/services/households";
@@ -76,43 +74,38 @@ export default async function DashboardPage({
 
   const selectedMemberIds = membersParam ? membersParam.split(",").filter(Boolean) : [];
 
-  // One ordered scope read feeds the selected range, cash KPI and forecast.
-  // The cash KPI historically uses only the default range unless dates were explicit.
-  // Noncanonical URL dates retain Postgres parsing/errors instead of lexical comparison.
-  const deriveRange = canDeriveDashboardRange(dateFrom, dateTo);
-  const selectedRangeRequest = deriveRange ? Promise.resolve(null) : getTransactions(supabase, { householdId: selectedHouseholdId || undefined, userIds: selectedMemberIds.length ? selectedMemberIds : undefined, dateFrom, dateTo });
-  const [allScopeTransactions, recurringItems, settings, households, categoryIconMap, creditCards, locale, selectedRange] = await Promise.all([
-    getTransactions(supabase, { householdId: selectedHouseholdId || undefined, userIds: selectedMemberIds.length ? selectedMemberIds : undefined }),
+  const scope = { householdId: selectedHouseholdId || undefined, userIds: selectedMemberIds.length ? selectedMemberIds : undefined };
+  const today = getBangkokDate();
+  const forecastUsesScope = Boolean(selectedHouseholdId || selectedMemberIds.length);
+  const forecastScope = forecastUsesScope ? scope : { personalOnly: true, userIds: [currentUserId] };
+  // Charts/recent/breakdowns still need selected-range rows. Aggregate RPC replaces
+  // the old all-history dedupe; only forecast-relevant rows cross the network.
+  const [transactions, totals, forecastTransactions, recurringItems, settings, households, categoryIconMap, creditCards, locale] = await Promise.all([
+    getTransactions(supabase, { ...scope, dateFrom, dateTo }),
+    getDashboardTotals(supabase, { ...scope, dateFrom, dateTo }),
+    getForecastTransactions(supabase, forecastScope, today),
     selectedHouseholdId ? getHouseholdRecurringBills(supabase, selectedHouseholdId, selectedMemberIds) : currentUserId ? getRecurringBills(supabase, currentUserId) : Promise.resolve([]),
     user ? getCachedUserSettings(user.id) : Promise.resolve(null),
     getUserHouseholds(supabase),
     getCategoryIconMap(supabase),
     getCardsWithBalance(supabase),
     getServerLocale(),
-    selectedRangeRequest,
   ]);
-  const derived = deriveRange ? selectDashboardTransactions(allScopeTransactions, dateFrom, dateTo, Boolean(from || to)) : null;
-  const transactions = derived?.transactions ?? selectedRange!;
-  const balanceTransactions = derived?.balanceTransactions ?? (from || to ? allScopeTransactions : transactions);
-  const kpis = calculateKpis(transactions);
-  const cashBalance = calculateCashBalance(balanceTransactions);
+  const kpis = totals.kpis;
+  // Preserve explicit URL dates => all-time cash; default range => range cash.
+  const cashBalance = from || to ? totals.cashBalance : totals.rangeCashBalance;
   const currency = settings?.currency ?? "THB";
   const t = translations[locale];
-  const forecastTransactions = selectedHouseholdId || selectedMemberIds.length > 0
-    ? allScopeTransactions
-    : allScopeTransactions.filter((transaction) => transaction.user_id === currentUserId && !transaction.household_id);
   const memberScopeIsCurrentUser = selectedMemberIds.length === 1 && selectedMemberIds[0] === currentUserId;
   const personalScope = !selectedHouseholdId && (!selectedMemberIds.length || memberScopeIsCurrentUser);
   const forecastRecurringItems = selectedHouseholdId || personalScope ? recurringItems : [];
   const monthEndForecast = calculateMonthEndForecast({
-    today: getBangkokDate(),
-    currentBalance: calculateCashBalance(forecastTransactions),
+    today,
+    currentBalance: forecastUsesScope ? totals.cashBalance : totals.personalCashBalance,
     transactions: forecastTransactions,
     recurringItems: forecastRecurringItems,
     householdId: selectedHouseholdId || undefined,
   });
-
-
 
   const recentTransactions = transactions.slice(0, 5);
   const recentUserIds = recentTransactions.map((tx) => tx.user_id);

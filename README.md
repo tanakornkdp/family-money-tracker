@@ -90,4 +90,4 @@ The `api_rate_limits` migration supplies atomic `check_rate_limit` decisions usi
 
 - Recover/configure the missing demo and Playwright harness files if those scripts are needed. Offline unit tests do not replace full signup-to-report browser testing.
 - Obtain the baseline schema and confirm the target environment's migration history before applying pending SQL. No database, secrets or deployment was changed by these review phases.
-- Dashboard SQL totals remain deferred pending exact numeric-equivalence agreement; see `docs/phase-3-performance.md`. Existing backup restore remains non-atomic; see `docs/phase-2-security-and-robustness.md`.
+- Dashboard totals now have an additive, cent-normalized SQL RPC prepared in `20261120130000_dashboard_totals.sql`; apply/verify it BEFORE deploying its readers. See [Phase 4 evidence](docs/phase-4-dashboard-totals.md) and the staging golden suite. Real database equivalence/RLS execution remains a release gate. Existing backup restore remains non-atomic; see `docs/phase-2-security-and-robustness.md`.

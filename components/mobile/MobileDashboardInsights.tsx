@@ -1,5 +1,5 @@
 import Link from "next/link";
-import type { Transaction, TravelTrip } from "@/types";
+import type { TravelTrip } from "@/types";
 import type { RecurringBill } from "@/services/recurringBills";
 import { getUpcomingOccurrences } from "@/services/recurringBills";
 import { getCurrentlyActiveTrips } from "@/services/travelTrips";
@@ -7,11 +7,9 @@ import AnimatedCurrency from "@/components/ui/AnimatedCurrency";
 
 function dateAfter(days: number) { const value = new Date(); value.setDate(value.getDate() + days); return value.toISOString().slice(0, 10); }
 
-export default function MobileDashboardInsights({ transactions, recurringItems, trips, currency, locale, visible = ["categories", "bills", "trips"] }: { transactions: Transaction[]; recurringItems: RecurringBill[]; trips: TravelTrip[]; currency: string; locale: "th" | "en"; visible?: string[] }) {
+export default function MobileDashboardInsights({ topCategories, recurringItems, trips, currency, locale, visible = ["categories", "bills", "trips"] }: { topCategories: { category: string; amount: number }[]; recurringItems: RecurringBill[]; trips: TravelTrip[]; currency: string; locale: "th" | "en"; visible?: string[] }) {
   const th = locale === "th";
-  const totals = new Map<string, number>();
-  transactions.filter((item) => item.type === "expense").forEach((item) => totals.set(item.category, (totals.get(item.category) ?? 0) + Number(item.amount)));
-  const categories = [...totals.entries()].sort((a, b) => b[1] - a[1]).slice(0, 4);
+  const categories = topCategories.map(({ category, amount }) => [category, amount] as const);
   const start = new Date().toISOString().slice(0, 10); const end = dateAfter(31);
   const bills = getUpcomingOccurrences(recurringItems, start, end).filter(({ bill }) => bill.type === "expense").slice(0, 3);
   const activeTrips = getCurrentlyActiveTrips(trips);

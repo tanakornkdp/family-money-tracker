@@ -7,8 +7,8 @@ import { translations, Locale } from "@/lib/i18n/translations";
 import { cookies } from "next/headers";
 import CreditCardsManager from "@/components/credit-cards/CreditCardsManager";
 import AccountReconciliation from "@/components/credit-cards/AccountReconciliation";
-import { getTransactions } from "@/services/transactions";
-import { getReconciliationAccounts } from "@/services/accountBalances";
+import { getDashboardTotals } from "@/services/dashboardTotals";
+import { reconciliationAccountsFromBalances } from "@/services/accountBalances";
 
 async function getServerLocale(): Promise<Locale> {
   const cookieStore = await cookies();
@@ -21,13 +21,13 @@ export default async function CreditCardsPage() {
   const supabase = await createClient();
   const locale = await getServerLocale();
   const t = translations[locale];
-  const [settings, transactions, cards] = await Promise.all([
+  const [settings, totals, cards] = await Promise.all([
     getCachedUserSettings(user.id),
-    getTransactions(supabase),
+    getDashboardTotals(supabase),
     getCardsWithBalance(supabase),
   ]);
   const currency = settings?.currency ?? "THB";
-  const accounts = getReconciliationAccounts(user.id, transactions, cards);
+  const accounts = reconciliationAccountsFromBalances(totals.accountCashBalance, totals.bankBalance, cards);
 
   return (
     <div className="space-y-8">

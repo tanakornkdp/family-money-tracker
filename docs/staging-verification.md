@@ -30,6 +30,7 @@ Result convention: tick only after observing the expected result; otherwise reco
     - `20261120100000_api_rate_limits.sql`
     - `20261120110000_performance_indexes.sql`
     - `20261120120000_card_limit_trigger_fixes.sql`
+    - `20261120130000_dashboard_totals.sql`
   - Expected: `public.get_card_balances` remains available, `public.get_card_balance` is available to authenticated, and `enforce_card_expense_limit` is installed for INSERT or UPDATE OF card_id, amount, type, category. No unexpected grants to anon/PUBLIC. Large-table indexes follow the migration's concurrent-build guidance where needed.
   - Actual / migration output reference: ____________________
 
@@ -241,3 +242,19 @@ Owner/sign-off: ____________________  Evidence location (no secrets): __________
 Agent preparation record: SQL/concurrency/restore/device scenarios **not executed**; no local PostgreSQL tools found, no live connection attempted. Phase 2 preparation checks passed: npm run lint, npx tsc --noEmit, npm test (76/76), and npm run build with NEXT_PUBLIC_SUPABASE_URL=https://example.supabase.co and NEXT_PUBLIC_SUPABASE_ANON_KEY=dummy. Source guards checked the rollback envelope, eight scenario markers, tagged DO blocks, role switches and narrow exception catches. Independent read-only review found no important issue. These are source/application checks and do not execute this SQL asset.
 
 References for the human operator: [SET ROLE](https://www.postgresql.org/docs/current/sql-set-role.html), [PL/pgSQL exception blocks](https://www.postgresql.org/docs/current/plpgsql-control-structures.html#PLPGSQL-ERROR-TRAPPING), [psql ON_ERROR_STOP](https://www.postgresql.org/docs/current/app-psql.html#APP-PSQL-VARIABLES). These describe mechanisms; they are not evidence that the staging run passed.
+
+## Dashboard totals — Phase 4 release gate
+
+- [ ] Prepare a separate copy of [dashboard_totals_staging.sql](../supabase/tests/dashboard_totals_staging.sql), replacing every placeholder with dedicated staging fixture identities. Follow its preflight requirements: three empty users, two groups, trip, recurring bill and credit card; inspect real baseline constraints before inserting.
+  - Expected: OWNER sees own transactions/shared HOUSEHOLD but not MEMBER private or unrelated OTHER_HOUSEHOLD rows. The legacy NULL-payment fixture must be compatible with actual baseline constraints; if not, STOP and record a reviewed adaptation/inapplicable case, never weaken constraints/policies.
+- [ ] Run the filled script with stop-on-error inside its BEGIN/ROLLBACK after migration 20261120130000.
+  - Expected: twelve PASS JSON golden notices and one disabled-category PASS; exact frozen TS cents totals and category order, no retained fixture rows. SQL/enum/numeric/RLS correctness must be established on the actual staging baseline, not inferred from offline tests.
+  - Actual/evidence: ____________________
+- [ ] Smoke desktop default dates then explicit from/to and personal/all/group/member views; smoke mobile personal/group, wallet, card reconciliation and budget.
+  - Expected: desktop default cash uses default range; explicit dates use all-time cash; forecast uses all-time personal cash only in unfiltered desktop view. Mobile KPIs/category insights retain all-time scope; five latest entries unchanged. Reconciliation retains its different top-up sign rule; budget still includes top-up expenses.
+- [ ] Compare forecasts with an upcoming recurring payment recorded before this month and one recorded with a future transaction date.
+  - Expected: both remain paid and are not forecast twice; only messages/recent data bounded by transaction dates change the query size, not the estimate. Verify with more than 1000 rows in the bounded window.
+- [ ] Check missing get_dashboard_totals RPC with a fake/isolated throwaway project only.
+  - Expected: clear migration diagnostic, no guessed balances; restore/apply migration before release. Follow [deploy-runbook.md](deploy-runbook.md), production migration BEFORE code.
+
+No Phase 4 SQL, device session or real database test has been executed by the coding agent. Record human-run outcomes above.

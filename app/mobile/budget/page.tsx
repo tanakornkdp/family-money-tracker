@@ -15,16 +15,18 @@ export default async function MobileBudget({ searchParams }: { searchParams: Pro
   const { plan } = await searchParams;
   const user = await requireUser();
   const supabase = await createClient();
+  const currentMonth = toDateInputValue().slice(0, 7);
+  const [year, month] = currentMonth.split("-").map(Number);
+  const monthEnd = currentMonth + "-" + String(new Date(Date.UTC(year, month, 0)).getUTCDate());
   const [plans, households, settings, transactions, defaultLocale] = await Promise.all([
     getBudgetPlans(supabase),
     getUserHouseholds(supabase),
     getCachedUserSettings(user.id),
-    getTransactions(supabase),
+    getTransactions(supabase, { dateFrom: currentMonth + "-01", dateTo: monthEnd }),
     getRequestLocale(),
   ]);
   const currency = settings?.currency ?? "THB";
   const t = translations[settings?.language ?? defaultLocale];
-  const currentMonth = toDateInputValue().slice(0, 7);
   const monthlyExpense = transactions
     .filter((transaction) => transaction.type === "expense" && transaction.date.slice(0, 7) === currentMonth)
     .reduce((sum, transaction) => sum + Number(transaction.amount), 0);
