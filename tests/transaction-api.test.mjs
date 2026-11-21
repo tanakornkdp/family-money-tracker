@@ -1,3 +1,4 @@
+import { increasesCardExposure } from "../lib/validation/cardExposure.ts";
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { loadTsModule } from "./loadTsModule.mjs";
@@ -8,7 +9,7 @@ import { referenceCardBalances } from "./cardBalanceReference.ts";
 const payment = { title: "Food", amount: 100, type: "expense", category: "Food", date: "2026-11-20", payment_method: "debit_card", card_id: "wallet" };
 const auth = async () => ({ data: { user: { id: "user" } } });
 const params = { params: Promise.resolve({ id: "topup" }) };
-const helpers = { "@/lib/api/errors": loadTsModule("lib/api/errors.ts"), "@/lib/validation/cardBalanceError": { cardBalanceErrorResponse }, "@/lib/validation/transactionInput": { validateTransactionInput } };
+const helpers = { "@/lib/validation/cardExposure": { increasesCardExposure }, "@/lib/api/errors": loadTsModule("lib/api/errors.ts"), "@/lib/validation/cardBalanceError": { cardBalanceErrorResponse }, "@/lib/validation/transactionInput": { validateTransactionInput } };
 test("DELETE delegates the excluded balance and ignores ordinary debit income", async () => {
   const cards = [{ id: "wallet", card_type: "debit" }];
   const rows = [{ id: "topup", card_id: "wallet", amount: 100, type: "expense", category: "เติมเงินวอลเล็ต" }, { id: "income", card_id: "wallet", amount: 999, type: "income", category: "Refund" }];
@@ -35,7 +36,7 @@ test("PATCH maps trigger errors and unknown internal exceptions are not leaked",
   for (const error of [new Error("wrapped", { cause: { code: "P1002", message: "CARD_CREDIT_INSUFFICIENT", details: '{"available":20}' } }), new Error("internal schema details / private hostname")]) {
     const client = { auth: { getUser: auth }, from() { return { select() { return this; }, eq() { return this; }, single: async () => ({ data: payment, error: null }) }; } };
     const { PATCH } = loadTsModule("app/api/transactions/[id]/route.ts", { ...helpers, "@/lib/supabase/server": { createClient: async () => client }, "@/services/creditCards": { getCardsWithBalance: async () => [{ id: "wallet", balance: 200, available: 200 }] }, "@/services/transactions": { updateTransaction: async () => { throw error; } } });
-    const response = await PATCH({ json: async () => ({ amount: 100 }) }, params);
+    const response = await PATCH({ json: async () => ({ amount: 101 }) }, params);
     assert.equal(response.status, error.cause ? 400 : 500);
     assert.equal((await response.json()).error, error.cause ? "วงเงินบัตรเครดิตไม่เพียงพอ" : "Internal server error");
   }

@@ -1,3 +1,4 @@
+import { increasesCardExposure } from "@/lib/validation/cardExposure";
 import { apiError } from "@/lib/api/errors";
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -5,7 +6,7 @@ import {
   deleteTransaction,
   updateTransaction,
 } from "@/services/transactions";
-import { getCardBalances, getCardsWithBalance } from "@/services/creditCards";
+import { getCardBalances, getCardsWithBalance, getCreditCards } from "@/services/creditCards";
 import { cardBalanceErrorResponse } from "@/lib/validation/cardBalanceError";
 import { validateTransactionInput } from "@/lib/validation/transactionInput";
 
@@ -47,14 +48,20 @@ export async function PATCH(
 
     const next = completeValidation.data;
     if ((next.payment_method === "debit_card" || next.payment_method === "credit_card") && next.card_id) {
-      const cards = await getCardsWithBalance(supabase, id);
-      const card = cards.find((candidate) => candidate.id === next.card_id);
-      if (!card) return NextResponse.json({ error: "บัตรที่เลือกไม่ถูกต้อง" }, { status: 400 });
-      if (next.type === "expense" && next.payment_method === "debit_card" && next.category !== "เติมเงินวอลเล็ต" && card.balance < next.amount!) {
-        return NextResponse.json({ error: "ยอดเงินในบัตรเดบิตไม่เพียงพอ" }, { status: 400 });
-      }
-      if (next.type === "expense" && next.payment_method === "credit_card" && card.available < next.amount!) {
-        return NextResponse.json({ error: "วงเงินบัตรเครดิตไม่เพียงพอ" }, { status: 400 });
+      if (!increasesCardExposure(current, next)) {
+        // Preserve card visibility validation without recomputing unchanged/reduced debt.
+        const cards = await getCreditCards(supabase);
+        if (!cards.some((card) => card.id === next.card_id)) return NextResponse.json({ error: "บัตรที่เลือกไม่ถูกต้อง" }, { status: 400 });
+      } else {
+        const cards = await getCardsWithBalance(supabase, id);
+        const card = cards.find((candidate) => candidate.id === next.card_id);
+        if (!card) return NextResponse.json({ error: "บัตรที่เลือกไม่ถูกต้อง" }, { status: 400 });
+        if (next.type === "expense" && next.payment_method === "debit_card" && next.category !== "เติมเงินวอลเล็ต" && card.balance < next.amount!) {
+          return NextResponse.json({ error: "ยอดเงินในบัตรเดบิตไม่เพียงพอ" }, { status: 400 });
+        }
+        if (next.type === "expense" && next.payment_method === "credit_card" && card.available < next.amount!) {
+          return NextResponse.json({ error: "วงเงินบัตรเครดิตไม่เพียงพอ" }, { status: 400 });
+        }
       }
     }
 
