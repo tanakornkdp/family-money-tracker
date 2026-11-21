@@ -1,6 +1,8 @@
+import { isReportedMigrationError } from "./rpcMigration.mjs";
 import { NextResponse } from "next/server";
 
 export function logApiError(error: unknown) {
+  if (isReportedMigrationError(error)) return;
   let source = error;
   for (let depth = 0; depth < 3 && source && typeof source === "object"; depth++) {
     const cause = (source as { cause?: unknown }).cause;

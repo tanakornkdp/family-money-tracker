@@ -1,3 +1,4 @@
+import { CARD_BALANCES_RPC, throwIfMissingRpcMigration } from "../lib/api/rpcMigration.mjs";
 import { SupabaseClient } from "@supabase/supabase-js";
 import { CreditCard, CardType } from "@/types";
 import { fetchAllRows } from "../lib/utils/pagination.mjs";
@@ -68,9 +69,15 @@ export async function getCardBalances(
   if (cards.length === 0) return {};
 
   const cardIds = cards.map((c) => c.id);
-  const data = await fetchAllRows<{ card_id: string; balance: number | string }>((from, to) => supabase
-    .rpc("get_card_balances", { excluded_transaction_id: excludeTransactionId ?? null })
+  let data: { card_id: string; balance: number | string }[];
+  try {
+    data = await fetchAllRows<{ card_id: string; balance: number | string }>((from, to) => supabase
+    .rpc(CARD_BALANCES_RPC.name, { excluded_transaction_id: excludeTransactionId ?? null })
     .in("card_id", cardIds).order("card_id").range(from, to));
+  } catch (error) {
+    throwIfMissingRpcMigration(error, CARD_BALANCES_RPC, supabase);
+    throw error;
+  }
 
   const balances: Record<string, number> = {};
   for (const card of cards) balances[card.id] = 0;

@@ -26,6 +26,10 @@ npm run dev
 
 The development server listens on port 3000 and all network interfaces. Open `/dashboard` for desktop or `/mobile/dashboard` for mobile on that same origin; sign in with a real account for that Supabase project.
 
+## Deploy safely
+
+Follow [the migration-before-code deploy runbook](docs/deploy-runbook.md) for backups, staging verification, production migration order, smoke tests and rollback constraints. Required database functions must exist before deploying their callers. The human-run [staging checklist](docs/staging-verification.md) includes the card-limit SQL and concurrency scenarios.
+
 ## Database migrations
 
 The SQL files in `supabase/migrations` are **incremental**. They assume an existing baseline schema (transactions, households, receipts, cards, goals, required helper functions and policies). This repository does not contain that complete baseline or a committed `supabase/config.toml`; the current migrations alone cannot bootstrap a fresh project.

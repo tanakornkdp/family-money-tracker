@@ -36,3 +36,16 @@ Verification: lint, tsc, 76/76 offline tests and dummy-config build passed. Inde
 Phase 2 rulings: the rollback-only suite uses five dedicated cards and a pre-created legacy over-limit row; it does not invent missing baseline RLS/columns or disable protections. Concurrent-writer testing requires a separately committed fixture and winner, unlike the rollback-only suite. API restore uses a separate no-legacy account so the intentionally rejected over-limit INSERT case cannot mask the near-limit upsert test.
 
 Phase 2 verification: all four required application gates passed (76/76 unit tests); static asset source guards passed. Independent review found no important issue. The staging SQL suite, two-session concurrency, HTTP restore and device smoke tests were not executed.
+
+# Phase 3: migration-before-code rollout
+
+- [x] Add failing fake-client tests for PGRST202/42883 detection, fail-closed behavior, safe one-per-request diagnostics and no duplicate API error log.
+- [x] Add a shared native-JS migration diagnostic helper (usable by client/server services) and wrap getCardBalances failures. Preserve unrelated errors and prohibit balance fallbacks.
+- [x] Deduplicate server diagnostics with React request/render cache plus a weak per-request-client guard for API handlers (which instantiate one Supabase client per request); no browser console logging. Make the API error logger recognize already reported migration errors.
+- [x] Write docs/deploy-runbook.md with exact backup -> staging migration -> staging suite -> production migration -> code deploy -> smoke -> rollback sequence; link from README.
+- [x] State compatibility limits of the Phase 1 trigger replacement and unknown future Phase 4 RPCs. Keep existing public RPCs while dependent code is deployed; no speculative SQL totals migration.
+- [x] Run lint, tsc, npm test and dummy-config build; independent review; one Phase 3 commit. No real migration, deployment or push is performed.
+
+Phase 3 ruling: shared services are imported by browser components, so the diagnostic helper must not import node-only or Next server-only modules. React cache deduplicates RSC diagnostics across server clients; weak client keys cover current API handlers' request-scoped client instances without a global permanent once flag. Missing-RPC errors contain only fixed dependency metadata, never the upstream payload/cause. Generic API logging skips an already-reported diagnostic.
+
+Phase 3 verification: lint, tsc, 84/84 offline tests and dummy-config production build passed. Independent read-only review found no important issues and independently passed all eight RPC diagnostic tests. Corrected the controlled quota procedure to allow 31 calls (the first 30 can be allowed). No SQL, migration, staging/production smoke, deployment or push was executed. Future Phase 4 dependencies remain unspecified and unverified.
