@@ -17,7 +17,7 @@ returns table (
 language sql stable security invoker set search_path = ''
 as $function$
   with scoped as materialized (
-    select t.id, t.user_id, t.household_id, t.amount, t.type, t.category, t.date, t.created_at,
+    select t.id, t.user_id, t.household_id, t.amount, t.type, t.category, t.date, t.created_at, t.payment_method,
       case
         when coalesce(t.payment_method, 'cash') <> 'cash' then 0::numeric
         when t.category = 'เติมเงินวอลเล็ต' then -t.amount
