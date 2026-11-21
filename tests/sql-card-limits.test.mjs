@@ -1,3 +1,4 @@
+import {loadTsModule} from './loadTsModule.mjs';
 import {test,before,after} from 'node:test';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
@@ -28,3 +29,18 @@ scenario('restore upsert of already over-limit legacy credit expense is rejected
  const id=await card(db),tx=await legacyExpense(db,id);await expectSqlError(db,()=>transaction(db,{id:tx,cardId:id,amount:150},true),'P1002',/CARD_CREDIT_INSUFFICIENT/);
 });
 scenario('wallet top-up category on CREDIT is ordinary credit expense',async()=>{const id=await card(db);await transaction(db,{cardId:id,category:'เติมเงินวอลเล็ต',amount:60});assert.equal(await balance(id),60);await expectSqlError(db,()=>transaction(db,{cardId:id,category:'เติมเงินวอลเล็ต',amount:41}),'P1002',/CARD_CREDIT_INSUFFICIENT/);});
+
+scenario('NULL credit_limit is unlimited in SQL but app availability treats NULL as zero',async()=>{
+ // Deliberate CURRENT behavior, not a new rule: NULL SQL comparison never raises.
+ // Legacy/stub NULL is outside TS's declared number type; actual schema is unknown.
+ const id=await card(db,{limit:null}),tx=await transaction(db,{cardId:id,amount:1000});
+ await db.query('update public.transactions set amount=2000 where id=$1',[tx]);assert.equal(await balance(id),2000);
+ const metadata=(await db.query('select * from public.credit_cards')).rows;
+ const balances=(await db.query('select * from public.get_card_balances()')).rows;
+ const builder=data=>({select(){return this;},order(){return this;},in(){return this;},range:async()=>({data,error:null})});
+ const client={from(name){assert.equal(name,'credit_cards');return builder(metadata);},rpc(name){assert.equal(name,'get_card_balances');return builder(balances);}};
+ const {getCardsWithBalance}=loadTsModule('services/creditCards.ts');
+ const [appCard]=await getCardsWithBalance(client);assert.equal(appCard.credit_limit,null);assert.equal(appCard.available,-2000);
+ // Actual POST/PATCH increasing-credit-exposure predicate: available < amount.
+ assert.equal(appCard.available<1,true,'app would reject positive expense; DB accepted it');
+});

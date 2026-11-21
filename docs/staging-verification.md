@@ -2,7 +2,7 @@
 
 Prepared 2026-11-21 for `codex/trigger-and-sql-totals`, after the Phase 1 repair `fa9a9c0`.
 
-**Human execution required. No SQL scenario in this document or `supabase/tests/card_limits_staging.sql` has been executed by the coding agent.** `psql`, `postgres` and `docker` were not found on PATH; no scratch or real database was contacted. Offline application checks are recorded at the end and are not a substitute for these tests.
+**Human execution required. No SQL scenario in this document or `supabase/tests/card_limits_staging.sql` has been executed by the coding agent.** `psql`, `postgres` and `docker` were not found on PATH; no scratch or real database was contacted at that earlier checkpoint. Round 3 subsequently runs the migration sources in an in-memory PGlite database using a test stub; it does not execute these staging scripts or contact Supabase. Offline application checks are recorded at the end and are not a substitute for these tests.
 
 Operator: ____________________  Date/time: ____________________
 
@@ -23,6 +23,11 @@ Result convention: tick only after observing the expected result; otherwise reco
   - Actual / backup reference (no secret URL): ____________________
 
 ## 2. Apply pending migrations in order
+
+- [ ] **Before applying migrations, run npm test (includes SQL tests)** from a clean npm ci install. Expect original tests plus PGlite migration/trigger/quota/golden tests and the labelled expected-failure negative control to pass; investigate any migration failure or PGlite-unavailable skip before release.
+- PGlite proves migration syntax/function logic and twelve golden comparisons against the test stub. It does NOT prove real baseline types/constraints, production RLS, Supabase Auth/roles, concurrent writers or restore through /api/backup. All staging scenarios remain mandatory, especially the second household member, two-session concurrency and restore-over-existing tests. No Supabase SQL has been run by this harness.
+- Decide the documented NULL credit_limit rule (DB currently unlimited, app computes availability as zero minus debt), and verify legacy over-limit restore rejection. See [card-limit-trigger-fixes.md](card-limit-trigger-fixes.md).
+
 
 - [ ] Compare staging migration history to the repository and apply only unapplied files with the approved migration runner. Keep historical files unchanged.
   - Expected: required baseline/older future-plan migrations are present, followed by:

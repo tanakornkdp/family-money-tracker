@@ -39,6 +39,11 @@ When applicable, older `20261119090000` and `20261119093000` future-plan migrati
 
 ## 2. Apply migrations to staging, in filename order
 
+- [ ] **Before applying migrations, run npm test (includes SQL tests)** from a clean npm ci install. Expect original tests plus PGlite migration/trigger/quota/golden tests and the labelled expected-failure negative control to pass; investigate any migration failure or PGlite-unavailable skip before release.
+- PGlite proves migration syntax/function logic and twelve golden comparisons against the test stub. It does NOT prove real baseline types/constraints, production RLS, Supabase Auth/roles, concurrent writers or restore through /api/backup. All staging scenarios remain mandatory, especially the second household member, two-session concurrency and restore-over-existing tests. No Supabase SQL has been run by this harness.
+- Decide the documented NULL credit_limit rule (DB currently unlimited, app computes availability as zero minus debt), and verify legacy over-limit restore rejection. See [card-limit-trigger-fixes.md](card-limit-trigger-fixes.md).
+
+
 Use the approved migration workflow. The examples below target **Supabase CLI v3** explicitly; bare commands can select local state by default. The operator must inspect their installed version/help before using these examples. CLI is not installed/validated on the agent machine. [CLI push reference](https://supabase.com/docs/reference/cli/supabase-db-push), [v3 target change](https://supabase.com/changelog/supabase-cli-v3).
 
 ```text

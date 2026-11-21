@@ -4,7 +4,7 @@ Date: 2026-11-21. Branch: `codex/trigger-and-sql-totals`, created from `codex/re
 
 The supplied attachment specifies Phase 1 only. This change repairs the card-limit trigger and PATCH precheck; it does not add dashboard SQL totals. Existing migrations, the multi-card aggregate RPC, provider logic, secrets, Vercel configuration and the real database are unchanged.
 
-**SQL WAS NOT EXECUTED**, locally or against Supabase. `Get-Command` found no `psql`, `postgres` or `docker` on PATH. SQL evidence here is source inspection and static regression checks, not a live concurrency/RLS test.
+**Historical Phase 1 evidence: SQL WAS NOT EXECUTED** locally or against Supabase at that checkpoint. Round 3 now executes the real migration files in PGlite; see the follow-up below. No Supabase SQL execution has occurred. `Get-Command` found no `psql`, `postgres` or `docker` on PATH. SQL evidence here is source inspection and static regression checks, not a live concurrency/RLS test.
 
 ## Changes against the eight requirements
 
@@ -54,3 +54,25 @@ Build uses Next.js 16.4.6/Turbopack and `next.config.js`, with 54 static-page wo
 No branch was pushed, merged or deployed by this repair. The source-level change reduces the trigger aggregate to one card, and reduces normal non-increasing PATCH prechecks from card-list plus balances reads to the card-list read only. No production timing or query-plan improvement was measured.
 
 PostgreSQL behavior references: [column-specific CREATE TRIGGER](https://www.postgresql.org/docs/current/sql-createtrigger.html) and [transaction advisory locks](https://www.postgresql.org/docs/current/functions-admin.html#FUNCTIONS-ADVISORY-LOCKS). These references support the design, not a claim that this migration was executed.
+
+## Round 3 follow-up: real SQL tests and documented edge cases
+
+The original phase evidence above predates the PGlite harness. Round 3 now executes all migration files and trigger/golden/quota tests in **PGlite (Postgres/WASM)** with a deliberately incomplete test baseline. This is not execution against Supabase and does not certify production policies, constraints, roles, multi-connection concurrency or /api/backup restore. See tests/sql-card-limits.test.mjs and the round3 report.
+
+### NULL credit_limit: current DB/app disagreement (no behavior change)
+
+If the actual schema permits a legacy credit_limit NULL, SQL computes available = NULL - debt. The trigger's amount > available expression is NULL, so it never raises a credit-limit exception; new expenses and increases are effectively unlimited. The PGlite test pins that an expense1000 and increase2000 both pass.
+
+services/creditCards.ts getCardsWithBalance instead uses JavaScript credit_limit - balance. JavaScript coerces null to0, so available is0 - debt; POST /api/transactions and increasing-exposure PATCH /api/transactions/[id] reject an expense when card.available < amount. With debt0, positive spending is rejected; with debt2000, available is-2000; an overpayment could yield positive available. Thus app and DB do NOT agree on NULL. The same test feeds real PGlite rows through the actual TS service and checks that app precheck predicate; it does not invoke HTTP routes or change their behavior. TS declares credit_limit as number and new-entry validation is separate; this is a legacy-data edge, not proof NULL exists in production.
+
+**Needs human:** decide: NULL limit = unlimited or rejected. Check actual nullability and legacy rows; choose one consistent rule and add a NEW reviewed migration/API validation change if required. No rule or existing migration is changed for this edge case here.
+
+### Restore into an already over-limit card
+
+INSERT ... ON CONFLICT DO UPDATE fires BEFORE INSERT enforcement before its eventual UPDATE. A same-ID expense consuming exactly the whole valid balance passes because its existing row is excluded. A legacy over-limit expense150 on limit100 still fails when restored/upserted, even if the eventual UPDATE would be a no-op. Separate isolated PGlite tests pin BOTH outcomes; no fixture pollution or special restore exemption is used. Backup restore itself is still non-atomic and must be exercised through /api/backup in staging.
+
+## Known limitations
+
+get_card_balance and get_card_balances are security invoker and count only transactions visible to the caller under RLS. On a shared credit card, if a member can see the card but cannot see another member's expenses on it, debt/used limit is undercounted and available credit is overstated. On a debit card, omitted expenses can overstate funds while omitted top-ups can understate them. Advisory locking serializes participating checks but does not expand SELECT visibility.
+
+The real credit_cards and transactions policies are NOT in the repo and decide these results. Confirm that every member permitted to spend sees all transactions needed for a correct card balance; also verify unauthorized rows stay hidden. Do not change a function to security definer just to bypass a missing policy. The stub does not model these production policies; no illustrative invented RLS test is presented as proof. PGlite SET ROLE/grant checks only test the local test roles and supplied migration grants.
