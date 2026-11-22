@@ -1,5 +1,5 @@
-const CACHE_NAME = "family-money-shell-v2";
-const APP_SHELL = ["/icon-192.svg", "/icon-512.svg"];
+const CACHE_NAME = "family-money-shell-v3";
+const APP_SHELL = ["/icon-192.png", "/icon-512.png"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
