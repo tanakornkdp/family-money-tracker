@@ -1,4 +1,4 @@
-const duration = 180;
+export const DOCK_WINDOW_DURATION_MS = 420;
 const samples = 20;
 const rows = 8;
 const mix = (from: number, to: number, amount: number) => from + (to - from) * amount;
@@ -43,5 +43,5 @@ export function animateDockWindow(windowElement: HTMLElement, trigger: HTMLEleme
       opacity: progress > 0.96 ? (1 - progress) / 0.04 : 1,
     };
   });
-  return windowElement.animate(frames, { duration, fill: "both" });
+  return windowElement.animate(frames, { duration: DOCK_WINDOW_DURATION_MS, fill: "both" });
 }

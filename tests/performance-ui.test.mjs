@@ -27,13 +27,13 @@ test('CountUp server/reduced-motion initial render contains the final number, no
   function Motion(){return React.createElement('span',null,String(useReducedMotion()));}
   assert.equal(renderToStaticMarkup(React.createElement(Motion)),'<span>true</span>');
 });
-test('dock motion retains the effect at 180ms and skips animation for reduced motion',t=>{
+test('dock menus open and close at 420ms and skip both directions for reduced motion',t=>{
   const {animateDockWindow}=loadTsModule('lib/utils/dockWindowMotion.ts');let calls=0;
   const oldMatch=globalThis.matchMedia,oldCSS=globalThis.CSS;
   t.after(()=>{if(oldMatch===undefined)delete globalThis.matchMedia;else globalThis.matchMedia=oldMatch;if(oldCSS===undefined)delete globalThis.CSS;else globalThis.CSS=oldCSS;});
   globalThis.CSS={supports:()=>true};
-  const box={getBoundingClientRect:()=>({left:0,top:0,width:300,height:300}),animate(frames,options){calls++;assert.equal(options.duration,180);assert.equal(frames.length,21);return{};}};
+  const box={getBoundingClientRect:()=>({left:0,top:0,width:300,height:300}),animate(frames,options){calls++;assert.equal(options.duration,420);assert.equal(frames.length,21);return{};}};
   const trigger={querySelector:()=>null,getBoundingClientRect:()=>({left:100,top:350,width:40,height:40})};
-  globalThis.matchMedia=()=>({matches:false});animateDockWindow(box,trigger,true);assert.equal(calls,1);
-  globalThis.matchMedia=()=>({matches:true});animateDockWindow(box,trigger,false);assert.equal(calls,1);
+  globalThis.matchMedia=()=>({matches:false});animateDockWindow(box,trigger,true);animateDockWindow(box,trigger,false);assert.equal(calls,2);
+  globalThis.matchMedia=()=>({matches:true});animateDockWindow(box,trigger,true);animateDockWindow(box,trigger,false);assert.equal(calls,2);
 });
