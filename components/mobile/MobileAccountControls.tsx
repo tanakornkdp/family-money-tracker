@@ -6,7 +6,7 @@ import { Languages, LogOut, Moon, Sun } from "lucide-react";
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { createClient } from "@/lib/supabase/client";
-import NotificationCenter from "@/components/NotificationCenter";
+import NotificationCenter, { type NotificationCenterHandle } from "@/components/NotificationCenter";
 import { animateDockWindow } from "@/lib/utils/dockWindowMotion";
 import { useMobilePreferences } from "./MobilePreferencesControls";
 
@@ -24,6 +24,15 @@ export default function MobileAccountControls({ userId, email, avatarUrl, name }
   const [closing, setClosing] = useState(false);
   const motion = useRef<Animation>(undefined);
   const dismissing = useRef(false);
+  const notificationPanel = useRef<NotificationCenterHandle>(null);
+  const pendingPopover = useRef<"profile" | "notifications" | null>(null);
+  const finishClose = useCallback(() => {
+    const next = pendingPopover.current;
+    pendingPopover.current = null;
+    dismissing.current = false;
+    setClosing(false);
+    setOpen(next);
+  }, []);
   const [failedAvatar, setFailedAvatar] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
@@ -49,10 +58,10 @@ export default function MobileAccountControls({ userId, email, avatarUrl, name }
 
   const closePopover = useCallback(() => {
     if (open === "notifications") {
-      container.current?.querySelector<HTMLButtonElement>("[data-notification-trigger]")?.click();
+      notificationPanel.current?.close();
       return;
     }
-    if (open !== "profile") { setOpen(null); return; }
+    if (open !== "profile") { finishClose(); return; }
     if (dismissing.current) return;
     dismissing.current = true;
     const existing = motion.current;
@@ -65,19 +74,22 @@ export default function MobileAccountControls({ userId, email, avatarUrl, name }
       animation = menu.current && profileTrigger.current ? animateDockWindow(menu.current, profileTrigger.current, false) : undefined;
     }
     if (!animation) {
-      dismissing.current = false;
-      setOpen(null);
+      finishClose();
       return;
     }
     motion.current = animation;
     setClosing(true);
     void animation.finished.then(() => {
       if (motion.current !== animation) return;
-      dismissing.current = false;
-      setClosing(false);
-      setOpen(null);
+      finishClose();
     }, () => undefined);
-  }, [open]);
+  }, [open, finishClose]);
+
+  function requestPopover(target: "profile" | "notifications") {
+    pendingPopover.current = open === target ? null : target;
+    if (open) closePopover();
+    else finishClose();
+  }
 
   useEffect(() => {
     if (!open) return;
@@ -85,11 +97,12 @@ export default function MobileAccountControls({ userId, email, avatarUrl, name }
     const trigger = open === "profile" ? profileTrigger.current
       : container.current?.querySelector<HTMLButtonElement>('button[aria-expanded="true"]');
     const outside = (event: PointerEvent) => {
-      if (event.target instanceof Node && !container.current?.contains(event.target)) closePopover();
+      if (event.target instanceof Node && !container.current?.contains(event.target)) { pendingPopover.current = null; closePopover(); }
     };
     const escape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
       event.preventDefault();
+      pendingPopover.current = null;
       closePopover();
       trigger?.focus();
     };
@@ -121,15 +134,12 @@ export default function MobileAccountControls({ userId, email, avatarUrl, name }
   }
 
   return <div ref={container} className="relative flex items-center gap-2">
-    <NotificationCenter userId={userId} compact expanded={open === "notifications"}
-      onExpandedChange={expanded => {
-        dismissing.current = false;
-        setClosing(false);
-        setOpen(expanded ? "notifications" : null);
-      }} />
+    <NotificationCenter ref={notificationPanel} userId={userId} compact expanded={open === "notifications"}
+      onRequestToggle={() => requestPopover("notifications")}
+      onExpandedChange={expanded => { if (expanded) setOpen("notifications"); else finishClose(); }} />
     <button ref={profileTrigger} type="button" aria-label={`${profileLabel}: ${name}`} aria-haspopup="menu" aria-expanded={open === "profile"}
       aria-controls={open === "profile" ? menuId : undefined}
-      onClick={() => open === "profile" ? closePopover() : setOpen("profile")}
+      onClick={() => requestPopover("profile")}
       className="grid size-10 shrink-0 place-items-center overflow-hidden rounded-full border border-mobile-border bg-mobile-surface-muted text-sm font-semibold text-mobile-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-primary-600 aria-expanded:ring-2 aria-expanded:ring-primary-600">
       {avatar(40)}
     </button>

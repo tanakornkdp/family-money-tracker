@@ -5,6 +5,7 @@ import type { ExpenseReportData } from "@/services/expenseReports";
 import { formatCurrency } from "@/lib/utils/formatCurrency";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import ExpenseReportFilters from "@/components/reports/ExpenseReportFilters";
+import CategoryDetails from "@/components/reports/CategoryDetails";
 import ExpenseReportCharts from "@/components/reports/ExpenseReportCharts";
 import { filterSecondary, formatFilterDate } from "@/components/ui/FilterBar";
 
@@ -72,6 +73,8 @@ export default function ExpenseReports({ data }: { data: ExpenseReportData }) {
         currency={data.currency}
         locale={data.locale}
       />
+
+      <CategoryDetails rows={data.exportRows} currency={data.currency} locale={locale} />
 
       {data.summary.count === 0 && (
         <p className="rounded-xl bg-slate-100 px-4 py-3 text-sm text-slate-600 dark:bg-slate-800 dark:text-slate-300">

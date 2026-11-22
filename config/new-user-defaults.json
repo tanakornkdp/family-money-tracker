@@ -1,0 +1,180 @@
+{
+  "categories": [
+    {
+      "name": "เกมส์",
+      "type": "both",
+      "icon": "🎮"
+    },
+    {
+      "name": "ขนม",
+      "type": "expense",
+      "icon": "🍔"
+    },
+    {
+      "name": "ของใช้ในบ้าน",
+      "type": "expense",
+      "icon": "🛋️"
+    },
+    {
+      "name": "ค่าเช่า/ที่อยู่อาศัย",
+      "type": "expense",
+      "icon": "🏠"
+    },
+    {
+      "name": "ค่าน้ำ",
+      "type": "expense",
+      "icon": "💧"
+    },
+    {
+      "name": "ค่าไฟ",
+      "type": "expense",
+      "icon": "💡"
+    },
+    {
+      "name": "ค่าสื่อสาร",
+      "type": "expense",
+      "icon": "📱"
+    },
+    {
+      "name": "เครื่องดื่ม",
+      "type": "both",
+      "icon": "☕"
+    },
+    {
+      "name": "เงินเดือน",
+      "type": "income",
+      "icon": "💵"
+    },
+    {
+      "name": "ช้อปปิ้ง",
+      "type": "expense",
+      "icon": "🛒"
+    },
+    {
+      "name": "เดินทาง",
+      "type": "expense",
+      "icon": "🚌"
+    },
+    {
+      "name": "ที่พัก",
+      "type": "expense",
+      "icon": "🏠"
+    },
+    {
+      "name": "น้ำมันรถ",
+      "type": "both",
+      "icon": "⛽"
+    },
+    {
+      "name": "บันเทิง",
+      "type": "expense",
+      "icon": "🎬"
+    },
+    {
+      "name": "โบนัส",
+      "type": "income",
+      "icon": "💵"
+    },
+    {
+      "name": "รายได้พิเศษ",
+      "type": "income",
+      "icon": "🏦"
+    },
+    {
+      "name": "สุขภาพ",
+      "type": "expense",
+      "icon": "🏋️"
+    },
+    {
+      "name": "อาหาร",
+      "type": "expense",
+      "icon": "🍱"
+    }
+  ],
+  "titles": [
+    {
+      "name": "Netflix",
+      "type": "expense",
+      "category": "บันเทิง",
+      "icon": "💰"
+    },
+    {
+      "name": "Youtube",
+      "type": "expense",
+      "category": "บันเทิง",
+      "icon": "💰"
+    },
+    {
+      "name": "กาแฟ",
+      "type": "expense",
+      "category": "เครื่องดื่ม",
+      "icon": "💰"
+    },
+    {
+      "name": "ขนม",
+      "type": "expense",
+      "category": "ขนม",
+      "icon": "💰"
+    },
+    {
+      "name": "ค่าเกมส์",
+      "type": "expense",
+      "category": "เกมส์",
+      "icon": "💰"
+    },
+    {
+      "name": "ค่าของใช้ในบ้าน",
+      "type": "expense",
+      "category": "ของใช้ในบ้าน",
+      "icon": "💰"
+    },
+    {
+      "name": "ค่าเดินทาง",
+      "type": "expense",
+      "category": "เดินทาง",
+      "icon": "💰"
+    },
+    {
+      "name": "ค่าที่พัก",
+      "type": "expense",
+      "category": "ที่พัก",
+      "icon": "💰"
+    },
+    {
+      "name": "ค่าโทรศัพท์และอินเทอร์เน็ต",
+      "type": "expense",
+      "category": "ค่าสื่อสาร",
+      "icon": "💰"
+    },
+    {
+      "name": "ค่าน้ำ",
+      "type": "expense",
+      "category": "ค่าน้ำ",
+      "icon": "💰"
+    },
+    {
+      "name": "ค่าไฟ",
+      "type": "expense",
+      "category": "ค่าไฟ",
+      "icon": "💰"
+    },
+    {
+      "name": "ค่าอาหาร",
+      "type": "expense",
+      "category": "อาหาร",
+      "icon": "💰"
+    },
+    {
+      "name": "เงินเดือน",
+      "type": "income",
+      "category": "เงินเดือน",
+      "icon": "💰"
+    },
+    {
+      "name": "โบนัส",
+      "type": "income",
+      "category": "โบนัส",
+      "icon": "💰"
+    }
+  ]
+}

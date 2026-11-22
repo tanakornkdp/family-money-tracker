@@ -55,7 +55,7 @@ export interface ExpenseReportData {
   summary: ExpenseReportSummary;
   trend: ExpenseTrendPoint[];
   categoryComparison: ExpenseCategoryPoint[];
-  exportRows: { date: string; title: string; category: string; amount: number; scope: string }[];
+  exportRows: { id: string; type: Transaction["type"]; date: string; title: string; category: string; amount: number; scope: string }[];
 }
 
 function getBangkokToday(): string {
@@ -262,7 +262,7 @@ export async function loadExpenseReportData(
     currency: settings?.currency ?? "THB",
     locale,
     ...report,
-    exportRows: filtered.filter((transaction) => !isWalletTopUp(transaction.category) && (selectedCategories.length === 0 || selectedCategories.includes(transaction.category))).map((transaction) => ({ date: transaction.date, title: transaction.title, category: transaction.category, amount: Number(transaction.amount), scope: transaction.household_id ? "household" : "personal" })),
+    exportRows: filtered.filter((transaction) => !isWalletTopUp(transaction.category) && (selectedCategories.length === 0 || selectedCategories.includes(transaction.category))).map((transaction) => ({ id: transaction.id, type: transaction.type, date: transaction.date, title: transaction.title, category: transaction.category, amount: Number(transaction.amount), scope: transaction.household_id ? "household" : "personal" })),
   };
 }
 
