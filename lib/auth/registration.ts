@@ -30,3 +30,16 @@ export function registrationErrorMessage(error: unknown, locale: Locale) {
       return thai ? "ดำเนินการไม่สำเร็จ กรุณาตรวจสอบการเชื่อมต่อแล้วลองใหม่" : "Unable to complete the request. Check your connection and try again.";
   }
 }
+
+/** Recognise Supabase's sanitized duplicate response without an admin lookup or auth setting change. */
+export function isExistingSignup(data: unknown, error: unknown): boolean {
+  if (error && typeof error === "object" && "code" in error) {
+    return error.code === "user_already_exists" || error.code === "email_exists";
+  }
+  if (error || !data || typeof data !== "object" || !("user" in data)) return false;
+  if ("session" in data && data.session) return false;
+  const user = data.user;
+  // A new/invited pending account retains its role. sanitizeUser clears both role and identities.
+  return !!user && typeof user === "object" && "role" in user && user.role === "" &&
+    "identities" in user && Array.isArray(user.identities) && user.identities.length === 0;
+}

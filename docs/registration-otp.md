@@ -43,3 +43,10 @@ $env:REGISTRATION_TEST_URL="http://127.0.0.1:3024"
 node tests/registration-browser.mjs
 ```
 The script requires installed Chrome and Playwright WebKit. It fails visibly if either runtime is unavailable. It is not included in npm test because it requires a running local app/browser; npm test remains network-free.
+
+## Existing-account recovery fix
+The signup screen now routes Supabase duplicate errors (user_already_exists/email_exists) or its sanitized duplicate response (empty role plus explicitly empty identities, without a session) to an existing-account notice. It clears password/confirmation/code and focuses the notice, with direct Log in and Forgot password links plus a way back to use another email. Missing/ambiguous metadata, invited accounts and unrelated service errors are not classified as existing. New and pending/unconfirmed accounts retain the OTP flow. No admin lookup, public email-search endpoint, auth setting or database change was introduced.
+
+The owner reported saving Gmail SMTP and the bilingual OTP template. OTP UI was deployed at cec7fa2. The latest investigated signup was a repeated signup against a confirmed existing account, so that request did not test live mail delivery. Actual inbox delivery remains unverified.
+
+Additional tests: three network-free existing-response cases; both obfuscated and explicit duplicate responses in all Chrome/WebKit TH/EN browser journeys, including recovery link destinations, no OTP requests and focus/cleared passwords on returning.

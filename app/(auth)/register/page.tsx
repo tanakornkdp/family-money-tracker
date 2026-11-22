@@ -10,7 +10,7 @@ import PasswordInput from "@/components/ui/PasswordInput";
 import MobilePreferencesControls from "@/components/mobile/MobilePreferencesControls";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import { isStandaloneApp } from "@/lib/utils/standalone";
-import { isValidOtp, normalizeOtp, registrationErrorMessage, validateRegistration } from "@/lib/auth/registration";
+import { isExistingSignup, isValidOtp, normalizeOtp, registrationErrorMessage, validateRegistration } from "@/lib/auth/registration";
 
 export default function RegisterPage() {
   const { locale } = useLanguage();
@@ -21,7 +21,7 @@ export default function RegisterPage() {
   const [confirmation, setConfirmation] = useState("");
   const [pendingEmail, setPendingEmail] = useState("");
   const [token, setToken] = useState("");
-  const [step, setStep] = useState<"register" | "verify" | "complete">("register");
+  const [step, setStep] = useState<"register" | "verify" | "complete" | "existing">("register");
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -43,8 +43,8 @@ export default function RegisterPage() {
 
   useEffect(() => {
     if (step === "verify") otpInput.current?.focus();
-    else if (step === "complete") stepHeading.current?.focus();
-    else if (previousStep.current === "verify") emailInput.current?.focus();
+    else if (step === "complete" || step === "existing") stepHeading.current?.focus();
+    else if (previousStep.current === "verify" || previousStep.current === "existing") emailInput.current?.focus();
     previousStep.current = step;
   }, [step]);
 
@@ -84,6 +84,14 @@ export default function RegisterPage() {
       const destination = email.trim();
       // Keep password-based signup. The confirmation email template contains .Token, not a link.
       const { data, error: signUpError } = await client.auth.signUp({ email: destination, password });
+      if (isExistingSignup(data, signUpError)) {
+        setPassword("");
+        setConfirmation("");
+        setToken("");
+        setPendingEmail("");
+        setStep("existing");
+        return;
+      }
       if (signUpError) throw signUpError;
       if (data.session) {
         // OTP verification requires Confirm email enabled; never silently bypass that step.
@@ -136,10 +144,10 @@ export default function RegisterPage() {
       <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 shadow-sm sm:p-8 dark:border-slate-800 dark:bg-slate-900">
         <div className="mb-5"><MobilePreferencesControls /></div>
         <h1 ref={stepHeading} tabIndex={-1} className="text-2xl font-semibold text-slate-900 focus-visible:outline-2 focus-visible:outline-emerald-600 dark:text-slate-100">
-          {step === "register" ? (thai ? "สร้างบัญชีของคุณ" : "Create your account") : step === "verify" ? (thai ? "ยืนยันอีเมลด้วย OTP" : "Verify your email with OTP") : (thai ? "ยืนยันอีเมลสำเร็จ" : "Email verified")}
+          {step === "existing" ? (thai ? "อีเมลนี้มีบัญชีแล้ว" : "This email already has an account") : step === "register" ? (thai ? "สร้างบัญชีของคุณ" : "Create your account") : step === "verify" ? (thai ? "ยืนยันอีเมลด้วย OTP" : "Verify your email with OTP") : (thai ? "ยืนยันอีเมลสำเร็จ" : "Email verified")}
         </h1>
         <p className="mt-2 break-words text-sm leading-relaxed text-slate-500 dark:text-slate-400">
-          {step === "register" ? (thai ? "เริ่มบันทึกการเงินของคุณด้วย AI" : "Start tracking your finances with AI") : step === "verify" ? (thai ? "นำรหัสที่ได้รับทางอีเมลมากรอกด้านล่าง" : "Enter the code from your email below.") : (thai ? "บัญชีของคุณพร้อมใช้งานแล้ว" : "Your account is ready to use.")}
+          {step === "existing" ? (thai ? "เข้าสู่ระบบด้วยบัญชีเดิม หากจำรหัสผ่านไม่ได้ ให้เลือกลืมรหัสผ่านเพื่อตั้งรหัสใหม่" : "Sign in to your existing account. If you cannot remember your password, reset it below.") : step === "register" ? (thai ? "เริ่มบันทึกการเงินของคุณด้วย AI" : "Start tracking your finances with AI") : step === "verify" ? (thai ? "นำรหัสที่ได้รับทางอีเมลมากรอกด้านล่าง" : "Enter the code from your email below.") : (thai ? "บัญชีของคุณพร้อมใช้งานแล้ว" : "Your account is ready to use.")}
         </p>
         {step === "verify" && <p className="mt-2 break-all text-sm font-medium text-slate-900 dark:text-slate-100">{pendingEmail}</p>}
 
@@ -179,10 +187,24 @@ export default function RegisterPage() {
           </form>
         )}
 
+        {step === "existing" && (
+          <div className="mt-6 space-y-3">
+            <Link href="/forgot-password" className="flex min-h-12 w-full items-center justify-center rounded-xl bg-primary-600 px-4 py-2 text-sm font-medium text-white hover:bg-primary-700 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-600">
+              {thai ? "ลืมรหัสผ่าน / ตั้งรหัสใหม่" : "Forgot password / Reset password"}
+            </Link>
+            <Link href="/login" className="flex min-h-12 w-full items-center justify-center rounded-xl bg-slate-100 px-4 py-2 text-sm font-medium text-slate-700 focus-visible:outline-2 focus-visible:outline-emerald-600 dark:bg-slate-800 dark:text-slate-200">
+              {thai ? "เข้าสู่ระบบ" : "Log in"}
+            </Link>
+            <button type="button" onClick={() => { setStep("register"); setError(null); setNotice(null); }} className="min-h-11 w-full rounded-xl text-sm text-primary-600 underline underline-offset-4 focus-visible:outline-2 focus-visible:outline-emerald-600 dark:text-indigo-300">
+              {thai ? "สมัครด้วยอีเมลอื่น" : "Use another email"}
+            </button>
+          </div>
+        )}
+
         {error && <p role="alert" className="mt-4 text-sm leading-relaxed text-red-600 dark:text-red-400">{error}</p>}
         {notice && <p role="status" className="mt-4 text-sm leading-relaxed text-slate-600 dark:text-slate-300">{notice}</p>}
         {step === "complete" && <Button type="button" onClick={openDashboard} className="mt-6 min-h-12 w-full">{thai ? "เริ่มใช้งาน" : "Open dashboard"}</Button>}
-        {step !== "complete" && <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
+        {step !== "complete" && step !== "existing" && <p className="mt-6 text-center text-sm text-slate-500 dark:text-slate-400">
           {thai ? "มีบัญชีแล้ว?" : "Already have an account?"}{" "}
           <Link href="/login" className="font-medium text-primary-600 dark:text-indigo-300">{thai ? "เข้าสู่ระบบ" : "Log in"}</Link>
         </p>}
