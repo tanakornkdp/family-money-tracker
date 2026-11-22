@@ -2,7 +2,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
-import { LayoutDashboard, Receipt, Tag, ScanLine, Bot, Users, Target, CalendarDays, CalendarClock, BarChart3, Settings, ChevronLeft, ChevronRight, CreditCard } from "lucide-react";
+import { LayoutDashboard, Receipt, Tag, ScanLine, Bot, Users, Target, CalendarDays, CalendarClock, BarChart3, Settings, ChevronLeft, ChevronRight, CreditCard, Info } from "lucide-react";
 import { useLanguage } from "@/lib/i18n/LanguageProvider";
 import clsx from "clsx";
 
@@ -19,6 +19,7 @@ export default function Sidebar() {
     { href: "/household", label: t.nav.household, icon: Users }, { href: "/goals", label: t.nav.goals, icon: Target },
     { href: "/money-plans", label: locale === "th" ? "แผนใช้เงินล่วงหน้า" : "Future money plans", icon: CalendarClock },
     { href: "/budget", label: t.nav.budget, icon: CalendarDays }, { href: "/reports", label: t.nav.reports, icon: BarChart3 }, { href: "/settings", label: t.nav.settings, icon: Settings },
+    { href: "/about", label: t.nav.about, icon: Info },
   ];
   useEffect(() => {
     const updatePill = () => {

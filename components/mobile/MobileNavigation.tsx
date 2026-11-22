@@ -27,6 +27,7 @@ import {
   Home,
   ShieldCheck,
   Settings,
+  Info,
 } from "lucide-react";
 import TransactionForm from "@/components/transactions/TransactionForm";
 const CameraEntry = dynamic(() => import("@/components/mobile/CameraEntry"), { ssr: false });
@@ -53,6 +54,7 @@ export default function MobileNavigation() {
     { href: "/mobile/recurring-bills", label: t.nav.recurring, icon: CalendarDays },
     { href: "/mobile/reports", label: t.nav.reports, icon: BarChart3 },
     { href: "/mobile/review", label: t.mobile.reviewPage.title, icon: ShieldCheck },
+    { href: "/mobile/about", label: t.nav.about, icon: Info },
   ];
   const title = panel === "wallet" ? t.mobile.wallet
     : panel === "menu" ? t.mobile.allMenu
