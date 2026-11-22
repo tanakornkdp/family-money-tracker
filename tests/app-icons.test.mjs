@@ -14,7 +14,16 @@ test('installed app and Apple icons use existing square PNGs with matching decla
 });
 test('service worker installs current manifest assets and removes only obsolete app caches',async()=>{
   const events={},pending=[],seen=[],removed=[];
-  runInNewContext(readFileSync(new URL('public/sw.js',root),'utf8'),{self:{addEventListener:(name,fn)=>events[name]=fn,skipWaiting(){},clients:{claim(){}},location:{origin:'https://example.test'}},caches:{open:async name=>({addAll:async paths=>{seen.push({name,paths:Array.from(paths)});for(const path of paths)pngSize('public'+path);}}),keys:async()=>['family-money-shell-v2','unrelated-cache','family-money-shell-v3'],delete:async name=>removed.push(name)}});
-  const event={waitUntil:p=>pending.push(p)};events.install(event);events.activate(event);await Promise.all(pending);
-  assert.deepEqual(seen[0].paths,manifest().icons.map(icon=>icon.src));assert.notEqual(seen[0].name,'family-money-shell-v2');assert.deepEqual(removed,['family-money-shell-v2']);
+  runInNewContext(readFileSync(new URL('public/sw.js',root),'utf8'),{self:{addEventListener:(name,fn)=>events[name]=fn,skipWaiting(){},clients:{claim(){}},location:{origin:'https://example.test'}},caches:{open:async name=>({addAll:async paths=>{seen.push({name,paths:Array.from(paths)});for(const path of paths)pngSize('public'+path);}}),keys:async()=>['family-money-shell-legacy','unrelated-cache',seen[0].name],delete:async name=>removed.push(name)}});
+  const event={waitUntil:p=>pending.push(p)};events.install(event);await Promise.all(pending);events.activate(event);await Promise.all(pending);
+  assert.deepEqual(seen[0].paths,manifest().icons.map(icon=>icon.src));assert.notEqual(seen[0].name,'family-money-shell-legacy');assert.deepEqual(removed,['family-money-shell-legacy']);
+});
+import sharp from 'sharp';
+
+test('wallet icon backgrounds have real alpha while the subject stays opaque',async()=>{
+  for(const path of ['app/icon.png','app/apple-icon.png','public/icon-192.png','public/icon-512.png']){
+    const {data,info}=await sharp(readFileSync(new URL(path,root))).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+    for(const [x,y] of [[0,0],[info.width-1,0],[0,info.height-1],[info.width-1,info.height-1]])assert.equal(data[(y*info.width+x)*4+3],0,path+' corner must be transparent');
+    assert.ok(data[(Math.floor(info.height/2)*info.width+Math.floor(info.width/2))*4+3]>=240,path+' subject must remain opaque');
+  }
 });
